@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+  // ============================================================
+  //   PASTE YOUR GOOGLE MAPS API KEY BETWEEN THE QUOTES BELOW
+  // ============================================================
+  const API_KEY = 'fill in your Google API here';
+  // ============================================================
+  //
+  //   LEAVE TIME OPTIMIZER · 1.17.0
+  //
+  //   Setup (one-time):
+  //
+  //   1. Get an API key at https://console.cloud.google.com/
+  //      → APIs & Services → Credentials → Create Credentials → API key
+  //
+  //   2. Enable these 4 APIs at APIs & Services → Library:
+  //        • Routes API           (traffic-aware forecasts)
+  //        • Maps JavaScript API  (loads the map)
+  //        • Places API           (address autocomplete — classic, not "New")
+  //        • Directions API       (draws the route on the map)
+  //
+  //   3. (Recommended) Restrict the key: APIs & Services → Credentials →
+  //      your key → API restrictions → check the 4 APIs above.
+  //
+  // ============================================================
+</script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Leave Time Optimizer · 1.17.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --bg-card: #ffffff;
+    --bg-elev: #f3f3ee;
+    --bg-tint: #f7f5ee;
+    --ink: #1a1a1a;
+    --ink-dim: #5a5a55;
+    --ink-faint: #9a9a93;
+    --line: #ebe9e1;
+    --line-strong: #d8d5c8;
+    --accent: #2d5f3f;
+    --accent-soft: #e8f0e9;
+    --accent-bright: #3a7a52;
+    --good: #2d5f3f;
+    --warn: #b8860b;
+    --alert: #b54834;
+    --alert-soft: #fbebe7;
+    --relaxed: #2d5f3f;
+    --usual: #b8860b;
+    --important: #b54834;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.03);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+    --radius: 10px;
+    --radius-sm: 6px;
+
+    /* Vertical budget for an FHD (1080p) Chrome window:
+       reduced 5% from v6 (940 → 893) */
+    --content-h: 806px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); min-height: 100vh; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    padding: 16px 20px 20px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 15% 0%, rgba(45, 95, 63, 0.04), transparent),
+      radial-gradient(ellipse 50% 30% at 100% 0%, rgba(184, 134, 11, 0.04), transparent);
+  }
+  body.alert-mode {
+    animation: alertFlash 0.9s ease-in-out infinite alternate;
+  }
+  @keyframes alertFlash {
+    from { background-color: var(--bg); }
+    to   { background-color: #fbe8e3; }
+  }
+
+  .wrap { max-width: 1880px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .header-left { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .title {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: 30px;
+    line-height: 1;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .title em {
+    font-style: italic;
+    color: var(--accent);
+    position: relative;
+  }
+  .title em::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: -2px;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.25;
+    border-radius: 2px;
+  }
+  .subtitle {
+    font-size: 12px;
+    color: var(--ink-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* THREE-COLUMN main layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 3fr 1fr;
+    gap: 14px;
+    align-items: stretch;
+    height: var(--content-h);
+  }
+  @media (max-width: 1280px) {
+    .layout { gap: 10px; }
+  }
+  @media (max-width: 1080px) {
+    .layout { grid-template-columns: 1fr; height: auto; }
+  }
+
+  /* Column scrolling (per-panel layout overrides below) */
+  .col-panel {
+    min-height: 0;
+    padding-right: 2px;
+  }
+  .col-panel::-webkit-scrollbar { width: 5px; }
+  .col-panel::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+
+  /* Card primitive */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 13px;
+    box-shadow: var(--shadow-sm);
+  }
+  .card + .card { margin-top: 10px; }
+  .card-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 9px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .card-label::before {
+    content: '';
+    width: 5px; height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  /* Form */
+  .field { margin-bottom: 9px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-dim);
+    margin-bottom: 4px;
+  }
+  .input-row { display: flex; gap: 6px; }
+  input[type="text"], input[type="time"], input[type="date"], select {
+    width: 100%;
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+    padding: 8px 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: all 0.18s;
+  }
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45, 95, 63, 0.12);
+  }
+  .btn-mini {
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    color: var(--ink-dim);
+    padding: 0 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    border-radius: var(--radius-sm);
+    transition: all 0.15s;
+    letter-spacing: 0.04em;
+  }
+  .btn-mini:hover { border-color: var(--accent); color: var(--accent); }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* Mode selector — grows to fill its slot in the left grid */
+  .mode-card-outer {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .mode-card-outer > .card-label {
+    flex: 0 0 auto;
+  }
+  .mode-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .mode-card {
+    padding: 14px 12px;
+    background: var(--bg-elev);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s;
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .mode-card:hover { background: #fff; }
+  .mode-card.selected {
+    background: #fff;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(45, 95, 63, 0.08);
+  }
+  .mode-card.selected.relaxed   { border-color: var(--relaxed); box-shadow: 0 0 0 2px rgba(45, 95, 63, 0.08); }
+  .mode-card.selected.usual     { border-color: var(--usual); box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.10); }
+  .mode-card.selected.important { border-color: var(--important); box-shadow: 0 0 0 2px rgba(181, 72, 52, 0.10); }
+  .mode-card .name {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .mode-card.relaxed .name { color: var(--relaxed); }
+  .mode-card.usual .name { color: var(--usual); }
+  .mode-card.important .name { color: var(--important); }
+  .mode-card .desc {
+    font-size: 12px;
+    color: var(--ink-faint);
+    line-height: 1.3;
+  }
+
+  /* Main button */
+  .btn-primary {
+    width: 100%;
+    margin-top: 10px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 18px 11px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.18s;
+    box-shadow: 0 2px 6px rgba(45, 95, 63, 0.15);
+  }
+  .btn-primary:hover {
+    background: var(--accent-bright);
+    box-shadow: 0 4px 10px rgba(45, 95, 63, 0.2);
+    transform: translateY(-1px);
+  }
+  .btn-primary.stop {
+    background: #fff;
+    color: var(--alert);
+    border: 1px solid var(--alert);
+    box-shadow: none;
+  }
+  .btn-primary.stop:hover {
+    background: var(--alert);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  /* API key warning */
+  .api-key-warn {
+    background: #fdf6e3;
+    border: 2px solid #e0a800;
+    color: #6b5400;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    box-shadow: var(--shadow-md);
+  }
+  .api-key-warn strong { color: #6b5400; }
+  .api-key-warn code {
+    background: rgba(0,0,0,0.08);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .api-key-warn ul { margin: 6px 0 0 18px; padding: 0; }
+  .api-key-warn li { margin-bottom: 2px; }
+
+  /* Error banner */
+  .error-banner {
+    background: var(--alert-soft);
+    border: 1px solid var(--alert);
+    color: var(--alert);
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    display: none;
+    box-shadow: var(--shadow-sm);
+  }
+  .error-banner.active { display: block; }
+  .error-banner strong { display: block; margin-bottom: 4px; font-size: 13px; }
+  .error-banner code {
+    background: rgba(181, 72, 52, 0.1);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+
+  /* RIGHT COLUMN — mode countdown cards (sized by parent grid) */
+  .col {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    padding: 14px 12px;
+    text-align: center;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .col:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  .col.active-mode {
+    border-color: var(--accent);
+    border-width: 2px;
+    padding: 11px 9px;
+    box-shadow: 0 0 0 4px rgba(45, 95, 63, 0.08), var(--shadow-lg);
+  }
+  .col.active-mode.relaxed { border-color: var(--relaxed); box-shadow: 0 0 0 4px rgba(45, 95, 63, 0.08), var(--shadow-lg); }
+  .col.active-mode.usual   { border-color: var(--usual); box-shadow: 0 0 0 4px rgba(184, 134, 11, 0.10), var(--shadow-lg); }
+  .col.active-mode.important { border-color: var(--important); box-shadow: 0 0 0 4px rgba(181, 72, 52, 0.10), var(--shadow-lg); }
+  .col.active-mode::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 12px; right: 12px;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 0 0 3px 3px;
+  }
+  .col.active-mode.relaxed::before { background: var(--relaxed); }
+  .col.active-mode.usual::before   { background: var(--usual); }
+  .col.active-mode.important::before { background: var(--important); }
+  .col-name {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .col.relaxed .col-name { color: var(--relaxed); }
+  .col.usual .col-name { color: var(--usual); }
+  .col.important .col-name { color: var(--important); }
+  .col-countdown {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: 44px;
+    line-height: 0.95;
+    color: var(--ink);
+    margin-bottom: 2px;
+    letter-spacing: -0.025em;
+    font-feature-settings: "tnum" 1;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .col-countdown .unit {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-dim);
+    letter-spacing: 0.02em;
+  }
+  .col-countdown.alert { color: var(--alert); }
+  .col-countdown.late {
+    color: var(--alert);
+    font-size: 28px;
+    font-style: italic;
+    padding: 6px 0 2px;
+    display: block;
+  }
+  .col-headline-label {
+    font-size: 10px;
+    color: var(--ink-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 4px;
+    margin-bottom: 6px;
+  }
+  .col-divider {
+    height: 1px;
+    background: var(--line);
+    margin: 6px 0 6px;
+    width: 70%;
+  }
+  .col-leaveat {
+    font-size: 14px;
+    color: var(--ink-dim);
+    margin-bottom: 3px;
+  }
+  .col-leaveat strong {
+    color: var(--ink);
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+  }
+  .col-drive {
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+  .col-drive strong {
+    color: var(--ink-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+  }
+
+  /* MAP */
+  .map-card {
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    height: 100%;
+    min-height: 0;
+  }
+  #mapContainer {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-elev);
+    position: relative;
+  }
+  .map-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-faint);
+    font-size: 12px;
+    gap: 6px;
+    text-align: center;
+    padding: 20px;
+  }
+  .map-placeholder .icon { font-family: 'Instrument Serif', serif; font-size: 28px; font-style: italic; }
+  .map-meta {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(255, 255, 255, 0.97);
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-dim);
+    box-shadow: var(--shadow-lg);
+    display: none;
+    z-index: 1;
+  }
+  .map-meta.show { display: block; }
+  .map-meta .big-num {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--accent);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin-right: 4px;
+  }
+  .map-meta .dist {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: 0.04em;
+  }
+
+  /* Range bar */
+  .range-card { padding: 16px 16px; }
+  .range-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .range-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .range-sub {
+    font-size: 12px;
+    color: var(--ink-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .range-bar {
+    height: 32px;
+    position: relative;
+    background: var(--bg-elev);
+    border-radius: 6px;
+    overflow: visible;
+  }
+  .range-fill {
+    position: absolute;
+    height: 100%;
+    background: linear-gradient(90deg,
+      rgba(45, 95, 63, 0.55) 0%,
+      rgba(184, 134, 11, 0.55) 50%,
+      rgba(181, 72, 52, 0.55) 100%);
+    border-radius: 6px;
+  }
+  .range-mean-marker {
+    position: absolute;
+    top: -3px; bottom: -3px;
+    width: 4px;
+    background: var(--ink);
+    transition: left 0.5s cubic-bezier(.2,.7,.3,1);
+    border-radius: 3px;
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.7);
+  }
+  /* Active mode position indicator (the value the active column is showing) */
+  .range-active-marker {
+    position: absolute;
+    bottom: -22px;
+    transform: translateX(-50%);
+    transition: left 0.5s cubic-bezier(.2,.7,.3,1);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--bg-card);
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--line-strong);
+    white-space: nowrap;
+  }
+  .range-active-marker::before {
+    content: '';
+    position: absolute;
+    top: -7px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 6px solid var(--line-strong);
+  }
+  .range-active-marker.relaxed   { color: var(--relaxed); border-color: var(--relaxed); }
+  .range-active-marker.usual     { color: var(--usual); border-color: var(--usual); }
+  .range-active-marker.important { color: var(--important); border-color: var(--important); }
+  .range-active-marker.relaxed::before   { border-bottom-color: var(--relaxed); }
+  .range-active-marker.usual::before     { border-bottom-color: var(--usual); }
+  .range-active-marker.important::before { border-bottom-color: var(--important); }
+  .range-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 28px;
+    font-size: 14px;
+    color: var(--ink-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+  }
+  .range-labels .l-low  { color: var(--relaxed); }
+  .range-labels .l-mid  { color: var(--usual); }
+  .range-labels .l-high { color: var(--important); }
+
+  /* Stat list */
+  .stat-list { display: flex; flex-direction: column; gap: 8px; }
+  .stat-mini {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .stat-mini .label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .stat-mini .value {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: 18px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .stat-mini .sub {
+    font-size: 10px;
+    color: var(--ink-faint);
+    margin-top: 1px;
+    text-align: right;
+  }
+  .stat-right { text-align: right; }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    font-size: 12px;
+    color: var(--ink-dim);
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+  }
+  .status-bar.error {
+    background: var(--alert-soft);
+    border-color: var(--alert);
+    color: var(--alert);
+  }
+  .status-right { display: flex; align-items: center; gap: 10px; }
+  .live-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    background: var(--good);
+    border-radius: 50%;
+    margin-right: 7px;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .confidence-pill {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-elev);
+    color: var(--ink-dim);
+  }
+  .confidence-pill.low { background: #fdf6e3; border-color: #e0a800; color: #8a6700; }
+  .confidence-pill.med { background: var(--bg-elev); border-color: var(--line-strong); color: var(--ink-dim); }
+  .confidence-pill.high { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+  /* Alert progress card */
+  .alert-progress-card { padding: 12px 14px; }
+  .ap-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .ap-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .ap-eta {
+    font-family: 'Instrument Serif', serif;
+    font-size: 18px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .ap-eta.alert { color: var(--alert); font-style: italic; }
+  .ap-bar {
+    height: 8px;
+    background: var(--bg-elev);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .ap-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--good) 0%, var(--warn) 70%, var(--alert) 100%);
+    transition: width 0.6s cubic-bezier(.2,.7,.3,1);
+    border-radius: 4px;
+  }
+  .ap-feet {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Forecast curve */
+  .forecast { padding: 14px 16px 12px; }
+  .forecast-header {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 12px;
+  }
+  .forecast-summary {
+    font-size: 13px;
+    color: var(--ink-dim);
+    margin-bottom: 10px;
+    line-height: 1.45;
+  }
+  .forecast-summary strong {
+    color: var(--ink);
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  /* Log */
+  .log { padding: 0; overflow: hidden; }
+  .log-header-bar {
+    padding: 8px 13px;
+    border-bottom: 1px solid var(--line);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--bg-tint);
+  }
+  .log-body { max-height: 180px; overflow-y: auto; }
+  .log-body::-webkit-scrollbar { width: 5px; }
+  .log-body::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+  .log-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 1fr 1fr 64px;
+    gap: 8px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    align-items: baseline;
+  }
+  .log-row:last-child { border-bottom: none; }
+  .log-row.head {
+    color: var(--ink-faint);
+    background: var(--bg-tint);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
+  }
+  .log-row .trend-up   { color: var(--alert); font-weight: 600; }
+  .log-row .trend-down { color: var(--good); font-weight: 600; }
+  .log-empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 12px;
+    font-style: italic;
+  }
+
+  /* Alert overlay */
+  .alert-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(250, 245, 240, 0.94);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .alert-overlay.active { display: flex; }
+  .alert-box {
+    text-align: center;
+    padding: 40px 36px;
+    max-width: 460px;
+    background: var(--bg-card);
+    border: 1px solid var(--alert);
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(181, 72, 52, 0.2);
+    animation: slideUp 0.4s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .alert-box .big {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 60px;
+    line-height: 1;
+    color: var(--alert);
+    margin-bottom: 14px;
+    letter-spacing: -0.02em;
+  }
+  .alert-box .msg {
+    font-size: 13px;
+    color: var(--ink);
+    margin-bottom: 22px;
+    line-height: 1.55;
+  }
+  .alert-box button {
+    background: var(--alert);
+    color: #fff;
+    border: none;
+    padding: 11px 28px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.18s;
+  }
+  .alert-box button:hover { transform: translateY(-1px); }
+
+  /* Late banner */
+  .late-banner {
+    background: var(--alert-soft);
+    border: 1px solid var(--alert);
+    color: var(--alert);
+    padding: 9px 13px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: none;
+    box-shadow: var(--shadow-sm);
+  }
+  .late-banner.active { display: block; }
+
+  /* PAC override */
+  .pac-container {
+    background: #fff;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    font-family: 'Inter', sans-serif;
+    margin-top: 3px;
+    box-shadow: var(--shadow-lg);
+    z-index: 9999;
+  }
+  .pac-item {
+    padding: 9px 12px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-dim);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .pac-item:hover { background: var(--bg-tint); }
+  .pac-item-query { color: var(--ink); }
+  .pac-matched { color: var(--accent); font-weight: 600; }
+
+  /* Column layout */
+  /* LEFT COLUMN — grid: Route&Timing fits content, Mode grows, then Button + Attribution */
+  .col-panel:not(.middle-panel):not(.right-panel) {
+    display: grid;
+    grid-template-rows: auto 1fr auto auto;
+    gap: 10px;
+    height: var(--content-h);
+    overflow: hidden;
+  }
+  .btn-big {
+    padding: 18px 12px;
+    font-size: 14px;
+    letter-spacing: 0.12em;
+  }
+  .attribution {
+    text-align: center;
+    margin-top: 0;
+    font-size: 12px;
+    color: var(--ink-faint);
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    letter-spacing: 0.04em;
+  }
+  /* Middle column: map fills entirely */
+  .middle-panel {
+    padding-right: 0;
+    overflow: hidden;
+    height: var(--content-h);
+    display: flex;
+    flex-direction: column;
+  }
+  .middle-panel > .card { flex: 1 1 auto; min-height: 0; }
+
+  /* RIGHT COLUMN — 5 boxes at natural height; leftover space distributed as equal gaps */
+  .right-panel {
+    display: grid;
+    grid-template-rows: auto auto auto auto auto;
+    align-content: space-between;
+    gap: 0;
+    overflow: hidden;
+    height: var(--content-h);
+    position: relative;
+  }
+  /* Late banner overlays at top without consuming a grid row */
+  .right-panel > .late-banner {
+    display: none;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 5;
+  }
+  .right-panel > .late-banner.active { display: block; }
+  /* Each direct child gets one row, sized by the grid */
+  .right-panel > .col,
+  .right-panel > .if-leave-now-card,
+  .right-panel > .poll-history-card {
+    min-height: 0;
+    overflow: hidden;
+    margin-top: 0 !important;
+  }
+  .poll-history-card {
+    display: flex;
+    flex-direction: column;
+  }
+  .poll-history-card .log-header-bar { flex: 0 0 auto; }
+  .poll-history-card .log-body {
+    max-height: none;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .if-leave-now-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Placeholder when not monitoring */
+  .placeholder-map {
+    height: 100%;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--ink-faint);
+  }
+  .placeholder-map .head {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    font-size: 38px;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  /* "Today" indicator on date field */
+  .date-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .today-btn {
+    flex-shrink: 0;
+    padding: 0 8px;
+    height: 35px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="header">
+    <div class="header-left">
+      <h1 class="title">Leave at <em>exactly</em> the right time.</h1>
+      <span class="subtitle">Departure Monitor</span>
+    </div>
+  </div>
+
+  <!-- API KEY WARNING -->
+  <div id="apiKeyWarn" class="api-key-warn" style="display:none;">
+    <strong>⚠ Setup required.</strong>
+    Open this file in a text editor and paste your Google Maps API key into the <code>API_KEY</code> variable near the top. You also need these 4 APIs enabled in Google Cloud Console:
+    <ul>
+      <li><strong>Routes API</strong> — for traffic-aware forecasts</li>
+      <li><strong>Maps JavaScript API</strong> — loads the map</li>
+      <li><strong>Places API</strong> (the classic one, not "New") — address autocomplete</li>
+      <li><strong>Directions API</strong> — draws the route on the map</li>
+    </ul>
+  </div>
+
+  <!-- ERROR BANNER -->
+  <div id="errorBanner" class="error-banner">
+    <strong>API error</strong>
+    <div id="errorMessage">—</div>
+  </div>
+
+  <!-- THREE-COLUMN LAYOUT (1 : 3 : 1) -->
+  <div class="layout">
+
+    <!-- LEFT: Inputs (Route&Timing expanded, Mode vertical, big button, attribution) -->
+    <div class="col-panel">
+      <div class="card route-timing-card">
+        <div class="card-label">Route & Timing</div>
+        <div class="field">
+          <label>Origin</label>
+          <input id="origin" type="text" placeholder="Starting address" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label>Destination</label>
+          <input id="destination" type="text" placeholder="Where you're going" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label>Date</label>
+          <div class="date-row">
+            <input id="targetDate" type="date" />
+            <button class="btn-mini today-btn" id="todayBtn">Today</button>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="field" style="margin-bottom:0;">
+            <label>Arrive by</label>
+            <input id="targetTime" type="time" />
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Buffer</label>
+            <select id="buffer">
+              <option value="0">0 min</option>
+              <option value="5" selected>5 min</option>
+              <option value="10">10 min</option>
+              <option value="15">15 min</option>
+              <option value="20">20 min</option>
+              <option value="30">30 min</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mode-card-outer">
+        <div class="card-label">Mode</div>
+        <div class="mode-grid" id="modeGrid">
+          <div class="mode-card relaxed" data-mode="relaxed">
+            <div class="name">Relaxed</div>
+            <div class="desc">If traffic is light</div>
+          </div>
+          <div class="mode-card usual selected" data-mode="usual">
+            <div class="name">Usual</div>
+            <div class="desc">Typical traffic</div>
+          </div>
+          <div class="mode-card important" data-mode="important">
+            <div class="name">Important</div>
+            <div class="desc">If traffic is heavy</div>
+          </div>
+        </div>
+      </div>
+
+      <button id="startBtn" class="btn-primary btn-big">Start Monitoring</button>
+      <button id="stopBtn" class="btn-primary stop btn-big" style="display:none;">Stop Monitoring</button>
+      <div class="attribution">by Jeremy Lee — 2026</div>
+    </div>
+
+    <!-- MIDDLE: Map only -->
+    <div class="col-panel middle-panel">
+      <div id="dashboardPlaceholder" class="card placeholder-map">
+        <div class="head">Ready when you are.</div>
+        <div style="font-size: 13px;">Fill in the route and timing on the left, then start monitoring.</div>
+      </div>
+
+      <div id="mapCardWrap" class="card map-card" style="display:none;">
+        <div id="mapContainer">
+          <div class="map-placeholder" id="mapPlaceholder">
+            <div class="icon">map</div>
+            <div>Route preview loading…</div>
+          </div>
+        </div>
+        <div class="map-meta" id="mapMeta">—</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Three columns stacked + minimal metrics -->
+    <div class="col-panel right-panel" id="sidePanel" style="display:none;">
+
+      <div id="lateBanner" class="late-banner">
+        Late on selected mode — leave now.
+      </div>
+
+      <div class="col relaxed" id="col-relaxed">
+        <div class="col-name">Relaxed</div>
+        <div class="col-countdown" id="cd-relaxed">—</div>
+        <div class="col-headline-label">until you leave</div>
+        <div class="col-divider"></div>
+        <div class="col-leaveat" id="lt-relaxed">—</div>
+        <div class="col-drive" id="dr-relaxed">—</div>
+      </div>
+      <div class="col usual active-mode" id="col-usual">
+        <div class="col-name">Usual</div>
+        <div class="col-countdown" id="cd-usual">—</div>
+        <div class="col-headline-label">until you leave</div>
+        <div class="col-divider"></div>
+        <div class="col-leaveat" id="lt-usual">—</div>
+        <div class="col-drive" id="dr-usual">—</div>
+      </div>
+      <div class="col important" id="col-important">
+        <div class="col-name">Important</div>
+        <div class="col-countdown" id="cd-important">—</div>
+        <div class="col-headline-label">until you leave</div>
+        <div class="col-divider"></div>
+        <div class="col-leaveat" id="lt-important">—</div>
+        <div class="col-drive" id="dr-important">—</div>
+      </div>
+
+      <div class="stat-mini if-leave-now-card">
+        <div>
+          <div class="label">If Leave Now</div>
+          <div class="sub" id="etaIfLeftNowSub">—</div>
+        </div>
+        <div class="stat-right">
+          <div class="value" id="etaIfLeftNow">—</div>
+        </div>
+      </div>
+
+      <div class="card log poll-history-card">
+        <div class="log-header-bar">Poll History</div>
+        <div class="log-body" id="logBody">
+          <div class="log-empty">Awaiting first poll…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ALERT OVERLAY -->
+<div id="alertOverlay" class="alert-overlay">
+  <div class="alert-box">
+    <div class="big">Leave now.</div>
+    <div id="alertMsg" class="msg">Time to depart.</div>
+    <button id="dismissAlert">Acknowledged</button>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  // The anchor poll is taken once at "Start", a fixed offset BEFORE target arrival.
+  // It gives us an initial duration estimate we use to size the departure window.
+  const ANCHOR_OFFSET_BEFORE_TARGET_MIN = 20;
+
+  // Once we know the anchor duration, fan-out sampling places this many sample
+  // points inside the "realistic departure window" right before target arrival.
+  // Each sample is 3 API calls (optimistic/best_guess/pessimistic), so
+  // 2 samples = 6 calls per cycle plus a "now" sample = 9 total. Reasonable.
+  const FAN_OUT_SAMPLE_COUNT = 2;
+
+  // The realistic departure window spans from (target - buffer - duration - WINDOW_PAD_BEFORE)
+  // to (target - buffer - duration_lower). WINDOW_PAD_BEFORE gives us a cushion to
+  // catch traffic *getting worse* in the run-up.
+  const WINDOW_PAD_BEFORE_MIN = 15;
+
+  // If the time-to-target is too short to fan out (less than this many minutes),
+  // we just poll a single "now" sample. Cheaper and avoids redundant calls.
+  const SHORT_TARGET_THRESHOLD_MIN = 25;
+
+  // Adaptive poll cadence based on time-until-leave
+  const POLL_INTERVALS = {
+    farMs: 15 * 60 * 1000,
+    midMs:  8 * 60 * 1000,
+    nearMs: 3 * 60 * 1000,
+  };
+  // ============================================================
+
+  // ---------- State ----------
+  let pollTimer = null;
+  let countdownTimer = null;
+  let monitoring = false;
+  let alertFired = false;
+  let originAuto, destAuto;
+  let pollHistory = [];
+  let forecast = [];
+  let selectedMode = 'usual';
+  let lateState = { relaxed: false, usual: false, important: false };
+  let mapsLoaded = false;
+  let map = null, directionsService = null, directionsRenderer = null;
+
+  // When ALL three modes are late even on best-case traffic, we freeze the
+  // UI in "leave now" state, stop polling, and suppress further API calls /
+  // errors. Saves money and avoids the "timestamp must be future" 400 we get
+  // when target is in the past.
+  let allModesLate = false;
+
+  // anchor data captured once on Start, reused to size the departure window
+  // anchor = { meanDuration, staticDuration, anchorDepTs }
+  // The fan-out window is derived from anchor + target + buffer.
+  let anchor = null;
+
+  // Defensive: return a no-op stub for missing elements so writes don't throw.
+  // This lets us drop UI elements without scrubbing every $().textContent
+  // reference in the JS.
+  const _stub = new Proxy({ classList: { add(){}, remove(){}, toggle(){}, contains(){return false;} }, style: {} }, {
+    get(t, k) {
+      if (k in t) return t[k];
+      // string properties (textContent, innerHTML, value) → assignable no-op
+      return undefined;
+    },
+    set() { return true; }
+  });
+  const $ = id => document.getElementById(id) || _stub;
+  const originInput = $('origin'), destInput = $('destination');
+  const targetTime = $('targetTime'), targetDate = $('targetDate');
+  const bufferSel = $('buffer');
+  const startBtn = $('startBtn'), stopBtn = $('stopBtn');
+  const todayBtn = $('todayBtn');
+  const modeGrid = $('modeGrid');
+
+  // ---------- Error banner ----------
+  function showError(title, details) {
+    $('errorBanner').classList.add('active');
+    $('errorMessage').innerHTML = details;
+    console.error(title, details);
+  }
+  function clearError() {
+    $('errorBanner').classList.remove('active');
+  }
+
+  // ---------- Storage ----------
+  const STORE_KEY = 'lto.settings';
+  const LEGACY_STORE_KEY = 'lto.v17.settings'; // fall back to old key for one-time migration
+  function saveSettings() {
+    try {
+      localStorage.setItem(STORE_KEY, JSON.stringify({
+        origin: originInput.value,
+        destination: destInput.value,
+        targetDate: targetDate.value,
+        targetTime: targetTime.value,
+        buffer: bufferSel.value,
+        mode: selectedMode,
+      }));
+    } catch (e) {}
+  }
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY) || localStorage.getItem(LEGACY_STORE_KEY) || '{}';
+      const d = JSON.parse(raw);
+      if (d.origin) originInput.value = d.origin;
+      if (d.destination) destInput.value = d.destination;
+      // Never restore an old date - always default to today on load
+      if (d.targetTime) targetTime.value = d.targetTime;
+      if (d.buffer) bufferSel.value = d.buffer;
+      if (d.mode) selectMode(d.mode);
+    } catch (e) {}
+  }
+
+  // ---------- Today helper ----------
+  function todayISO() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  function setDateToday() {
+    targetDate.value = todayISO();
+  }
+
+  // ---------- Google Maps loader ----------
+  function loadGoogleMaps() {
+    if (!API_KEY || API_KEY === 'fill in your Google API here') {
+      $('apiKeyWarn').style.display = 'block';
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&loading=async&callback=initMaps`;
+    s.async = true;
+    s.defer = true;
+    s.onerror = () => showError('Maps load failed', 'Could not load Google Maps JS. Check your API key.');
+    document.head.appendChild(s);
+    window.gm_authFailure = function() {
+      showError('Google Maps auth failure', 'Your API key is invalid, or <strong>Maps JavaScript API</strong> is not enabled, or your key has restrictions blocking this domain.');
+    };
+  }
+  window.initMaps = function() {
+    mapsLoaded = true;
+    try {
+      originAuto = new google.maps.places.Autocomplete(originInput, { types: ['geocode'] });
+      destAuto  = new google.maps.places.Autocomplete(destInput,  { types: ['geocode'] });
+    } catch (e) {
+      showError('Places autocomplete failed', 'Make sure <strong>Places API</strong> (classic, not "New") is enabled.');
+    }
+  };
+
+  // ---------- Map styling ----------
+  const MAP_STYLES = [
+    { elementType: 'geometry', stylers: [{ color: '#f5f3ed' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#6a6a64' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
+    { featureType: 'administrative', elementType: 'geometry', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+    { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#fdfdfd' }] },
+    { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#e8e1d0' }] },
+    { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#d8d0bd' }] },
+    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9dcd9' }] },
+    { featureType: 'landscape.natural', elementType: 'geometry', stylers: [{ color: '#e8eadc' }] },
+    { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  ];
+
+  function ensureMap() {
+    if (map || !mapsLoaded) return;
+    const el = $('mapContainer');
+    try {
+      map = new google.maps.Map(el, {
+        center: { lat: 34.05, lng: -118.25 },
+        zoom: 11,
+        styles: MAP_STYLES,
+        disableDefaultUI: true,
+        zoomControl: true,
+        gestureHandling: 'cooperative',
+      });
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer({
+        map,
+        polylineOptions: {
+          strokeColor: '#2d5f3f',
+          strokeWeight: 5,
+          strokeOpacity: 0.85,
+        },
+      });
+      $('mapPlaceholder').style.display = 'none';
+    } catch (e) {
+      showError('Map init failed', e.message);
+    }
+  }
+
+  function drawRoute() {
+    if (!mapsLoaded) return;
+    ensureMap();
+    if (!directionsService || !directionsRenderer) return;
+    directionsService.route({
+      origin: originInput.value,
+      destination: destInput.value,
+      travelMode: google.maps.TravelMode.DRIVING,
+      drivingOptions: {
+        departureTime: new Date(),
+        trafficModel: google.maps.TrafficModel.BEST_GUESS,
+      },
+    }, (result, status) => {
+      if (status === 'OK') {
+        directionsRenderer.setDirections(result);
+        const leg = result.routes[0].legs[0];
+        const dist = leg.distance.text;
+        const dur = leg.duration_in_traffic ? leg.duration_in_traffic.text : leg.duration.text;
+        $('mapMeta').innerHTML = `<span class="big-num">${dur}</span><span class="dist">${dist}</span>`;
+        $('mapMeta').classList.add('show');
+      } else {
+        $('mapPlaceholder').style.display = 'flex';
+        $('mapPlaceholder').innerHTML = `<div class="icon">—</div><div>Could not load route (${status}).<br/>Make sure <strong>Directions API</strong> is enabled.</div>`;
+      }
+    });
+  }
+
+  // ---------- Helpers ----------
+  function fmtHM(date) {
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+
+  // Format seconds → "58 min" or "1 hour 5 min" with proper pluralization
+  function fmtMins(sec) {
+    const totalMin = Math.round(sec / 60);
+    if (totalMin < 60) return `${totalMin} min`;
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    const hourStr = h === 1 ? '1 hour' : `${h} hours`;
+    if (m === 0) return hourStr;
+    const minStr = m === 1 ? '1 min' : `${m} min`;
+    return `${hourStr} ${minStr}`;
+  }
+
+  // Return { num, unit, isLong } for big countdown widget.
+  // < 60 min → just minute number with "min" unit
+  // >= 60 min → "1h 5m" style compact display
+  function fmtCountdownParts(ms) {
+    if (ms <= 0) return { num: '0', unit: 'min', isLong: false };
+    const totalMin = Math.ceil(ms / 60000);
+    if (totalMin < 60) {
+      return { num: String(totalMin), unit: totalMin === 1 ? 'min' : 'min', isLong: false };
+    }
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    if (m === 0) return { num: String(h), unit: h === 1 ? 'hr' : 'hr', isLong: false };
+    return { num: `${h}h ${m}`, unit: 'min', isLong: true };
+  }
+
+  // Build target Date from date + time inputs.
+  // FIX: respect the user's chosen date directly. Only roll over to tomorrow
+  // if no date is set AND the time has already passed today.
+  function buildTargetDate() {
+    const time = targetTime.value;
+    const date = targetDate.value;
+    if (!time) return null;
+    const [hh, mm] = time.split(':').map(Number);
+    let target;
+    if (date) {
+      const [y, mo, d] = date.split('-').map(Number);
+      target = new Date(y, mo - 1, d, hh, mm, 0, 0);
+    } else {
+      // No date — assume today, and if past, tomorrow
+      const now = new Date();
+      target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0, 0);
+      if (target <= now) target.setDate(target.getDate() + 1);
+    }
+    return target;
+  }
+  function pollIntervalMs(minsUntilLeave) {
+    if (minsUntilLeave > 60) return POLL_INTERVALS.farMs;
+    if (minsUntilLeave >= 30) return POLL_INTERVALS.midMs;
+    return POLL_INTERVALS.nearMs;
+  }
+
+  // ---------- Routes API ----------
+  //
+  // ⚠ KEY INSIGHT: Google Maps gets its "22-50 min" typical range by
+  // querying the Routes API with THREE different traffic models and taking the
+  // spread between them:
+  //   • OPTIMISTIC  → historical good-traffic-day duration (low)
+  //   • BEST_GUESS  → realistic point estimate including live traffic (mean)
+  //   • PESSIMISTIC → historical bad-traffic-day duration (high)
+  //
+  // BUT — the trafficModel parameter is ONLY honored when routingPreference is
+  // TRAFFIC_AWARE_OPTIMAL (not TRAFFIC_AWARE). TRAFFIC_AWARE_OPTIMAL is also
+  // the same engine Google Maps uses on maps.google.com.  This makes our range
+  // match Google's UI almost exactly.
+  //
+  // Cost: TRAFFIC_AWARE_OPTIMAL is billed at the higher "Advanced" SKU, so each
+  // sample now costs ~3x what it did before (3 calls × Advanced rate). We
+  // offset that by polling fewer samples per cycle.
+
+  // Make a single Routes API call with a given trafficModel.
+  // Returns the duration in seconds for that scenario.
+  async function fetchOneRouteWithModel(origin, destination, departureDate, trafficModel) {
+    const url = `https://routes.googleapis.com/directions/v2:computeRoutes?key=${API_KEY}`;
+    const body = {
+      origin: { address: origin },
+      destination: { address: destination },
+      travelMode: 'DRIVE',
+      routingPreference: 'TRAFFIC_AWARE_OPTIMAL',
+      trafficModel: trafficModel,
+      departureTime: departureDate.toISOString(),
+    };
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-FieldMask': 'routes.duration,routes.staticDuration,routes.distanceMeters',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`HTTP ${res.status}: ${txt.slice(0, 200)}`);
+    }
+    const data = await res.json();
+    if (!data.routes || !data.routes.length) throw new Error('No route returned by Routes API.');
+    const r = data.routes[0];
+    const duration = parseInt(r.duration.replace('s', ''), 10);
+    const staticSec = r.staticDuration ? parseInt(r.staticDuration.replace('s', ''), 10) : duration;
+    return { duration, staticSec };
+  }
+
+  // Fetch one departure time using all THREE traffic models in parallel.
+  // Returns { low, mean, high, staticSec } for that single departure moment.
+  // This single function call ≡ how Google Maps internally builds its range.
+  async function fetchOneRoute(origin, destination, departureDate) {
+    const [optimistic, bestGuess, pessimistic] = await Promise.all([
+      fetchOneRouteWithModel(origin, destination, departureDate, 'OPTIMISTIC'),
+      fetchOneRouteWithModel(origin, destination, departureDate, 'BEST_GUESS'),
+      fetchOneRouteWithModel(origin, destination, departureDate, 'PESSIMISTIC'),
+    ]);
+    // Defensive sort: per Google docs, BEST_GUESS may sometimes exceed PESSIMISTIC
+    // or undercut OPTIMISTIC due to live traffic, and OPTIMISTIC has occasionally
+    // returned values longer than BEST_GUESS (known Google quirk). Sort to be safe.
+    const trio = [optimistic.duration, bestGuess.duration, pessimistic.duration].sort((a, b) => a - b);
+    return {
+      low:  trio[0],
+      mean: trio[1],
+      high: trio[2],
+      staticSec: optimistic.staticSec, // free-flow time (any of the 3 returns it, all identical)
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Sampling: anchor-and-fan-out with traffic model triplet
+  //
+  // Range comes from Google's own pessimistic/best-guess/optimistic traffic
+  // models (see fetchOneRoute above), the same data source Google Maps uses
+  // for "typically X-Y min" range displays. This means the range should match
+  // Google Maps almost exactly.
+  //
+  //   1) On Start, take ONE "anchor" probe (3 Routes API calls) at
+  //      (target − 20 min) to get a duration estimate.
+  //   2) From anchor.meanDuration we compute the realistic departure window:
+  //         window_end   = target − buffer                  (just-in-time)
+  //         window_start = window_end − anchor.mean − pad   (cushion)
+  //   3) Every poll fan-outs FAN_OUT_SAMPLE_COUNT departure times INSIDE that
+  //      window (each = 3 API calls), plus one "now" sample for current cond.
+  //   4) Each sample's low/mean/high come from Google directly via the
+  //      OPTIMISTIC/BEST_GUESS/PESSIMISTIC traffic models. The cycle-wide
+  //      low/high is then unioned in so the range also accounts for the
+  //      spread across the departure window.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Decide whether the target is too soon to bother with fan-out.
+  function isShortTarget() {
+    const target = buildTargetDate();
+    if (!target) return true;
+    const minsToTarget = (target.getTime() - Date.now()) / 60000;
+    return minsToTarget < SHORT_TARGET_THRESHOLD_MIN;
+  }
+
+  // Take the anchor poll: a single Routes API probe ~20 min before target.
+  // Note: each "anchor" call internally fires 3 Routes API requests (one per
+  // traffic model). Returns the BEST_GUESS (mean) duration which we use to
+  // size the departure window.
+  async function takeAnchorPoll() {
+    const target = buildTargetDate().getTime();
+    // Anchor at (target - 20 min) but never in the past
+    const anchorTs = Math.max(Date.now() + 1000, target - ANCHOR_OFFSET_BEFORE_TARGET_MIN * 60000);
+    const r = await fetchOneRoute(originInput.value, destInput.value, new Date(anchorTs));
+    anchor = {
+      depTs: anchorTs,
+      mean: r.mean,       // BEST_GUESS duration
+      staticSec: r.staticSec,
+    };
+    return anchor;
+  }
+
+  // Compute the departure window from the anchor.
+  // Returns { startTs, endTs } — both clock times, anchored before target.
+  function computeWindow() {
+    const target = buildTargetDate().getTime();
+    const bufferMs = parseInt(bufferSel.value, 10) * 60000;
+    const a = anchor;
+    if (!a) {
+      // No anchor yet: fall back to "now" → target
+      return { startTs: Date.now(), endTs: target - bufferMs };
+    }
+    const windowEnd   = target - bufferMs;
+    const windowStart = windowEnd - a.mean * 1000 - WINDOW_PAD_BEFORE_MIN * 60000;
+    return {
+      startTs: Math.max(Date.now(), windowStart),
+      endTs:   Math.max(Date.now() + 60000, windowEnd), // never less than 1 min ahead
+    };
+  }
+
+  // Decide which clock-time departure samples to poll this cycle.
+  async function chooseSamples() {
+    // Short-target fast path: just one sample at "now" (+1s margin for clock skew)
+    if (isShortTarget()) {
+      return [{ depTs: Date.now() + 1000, label: 'now' }];
+    }
+    // Anchor must exist by this point. If somehow missing, take it now.
+    if (!anchor) await takeAnchorPoll();
+
+    const { startTs, endTs } = computeWindow();
+    const span = endTs - startTs;
+    const samples = [];
+    if (span <= 60000) {
+      samples.push({ depTs: startTs, label: 'window' });
+    } else {
+      for (let i = 0; i < FAN_OUT_SAMPLE_COUNT; i++) {
+        const frac = FAN_OUT_SAMPLE_COUNT === 1 ? 0.5 : i / (FAN_OUT_SAMPLE_COUNT - 1);
+        const depTs = Math.round(startTs + frac * span);
+        samples.push({ depTs, label: `w${i+1}` });
+      }
+    }
+    if (!samples.some(s => Math.abs(s.depTs - Date.now()) < 60000)) {
+      samples.unshift({ depTs: Date.now() + 1000, label: 'now' });
+    }
+    // Defensive: ensure every depTs is strictly in the future.
+    // The Routes API rejects past timestamps with HTTP 400.
+    const minFutureTs = Date.now() + 1000;
+    return samples.map(s => s.depTs < minFutureTs
+      ? { ...s, depTs: minFutureTs }
+      : s);
+  }
+
+  async function buildForecast() {
+    const samples = await chooseSamples();
+    const promises = samples.map(async s => {
+      try {
+        const r = await fetchOneRoute(originInput.value, destInput.value, new Date(s.depTs));
+        return { depTs: s.depTs, label: s.label, ...r };
+      } catch (e) {
+        return { depTs: s.depTs, label: s.label, error: e.message };
+      }
+    });
+    const settled = await Promise.all(promises);
+    const results = settled.filter(r => !r.error);
+    const firstError = settled.find(r => r.error);
+    if (!results.length) {
+      throw new Error(firstError ? firstError.error : 'All forecast samples failed.');
+    }
+
+    // ─── low/mean/high come DIRECTLY from Google ───
+    // Each sample is the result of three parallel Routes API calls using
+    // OPTIMISTIC, BEST_GUESS, PESSIMISTIC traffic models — the same data
+    // source Google Maps uses for its "typically X-Y min" range display.
+    //
+    // For each sample we ALSO widen the range to include the spread across
+    // ALL samples in this cycle. This catches time-of-day variability: if
+    // traffic genuinely worsens between window-start and window-end, the
+    // range for any single moment within that window should reflect that
+    // there's broader uncertainty about which moment you'll actually leave.
+    const allLows  = results.map(r => r.low);
+    const allHighs = results.map(r => r.high);
+    const cycleLow  = Math.min(...allLows);
+    const cycleHigh = Math.max(...allHighs);
+
+    const enriched = results.map(r => ({
+      depTs: r.depTs,
+      label: r.label,
+      mean: r.mean,
+      staticSec: r.staticSec,
+      // Widen this sample's range to include the entire cycle's spread.
+      // This matters when the window straddles a traffic boundary (e.g.,
+      // rush hour starts mid-window).
+      low:  Math.min(r.low,  cycleLow),
+      high: Math.max(r.high, cycleHigh),
+    }));
+
+    // Metadata for poll-history display
+    enriched._cycleLow = cycleLow;
+    enriched._cycleHigh = cycleHigh;
+    enriched._sampleCount = results.length;
+
+    return enriched;
+  }
+
+  // ---------- Forecast interpolation ----------
+  function durationAtDeparture(fc, depTs, modeKey) {
+    if (depTs <= fc[0].depTs) return fc[0][modeKey];
+    if (depTs >= fc[fc.length-1].depTs) return fc[fc.length-1][modeKey];
+    for (let i = 0; i < fc.length - 1; i++) {
+      if (depTs >= fc[i].depTs && depTs <= fc[i+1].depTs) {
+        const t = (depTs - fc[i].depTs) / (fc[i+1].depTs - fc[i].depTs);
+        return fc[i][modeKey] + t * (fc[i+1][modeKey] - fc[i][modeKey]);
+      }
+    }
+    return fc[0][modeKey];
+  }
+
+  function computeLeaveBy(fc, targetTs, bufferMs, modeKey) {
+    const cutoff = targetTs - bufferMs;
+    const now = Date.now();
+    const minStep = 30 * 1000;
+    const fine = [];
+    const endTs = Math.max(cutoff, now);
+    for (let t = now; t <= endTs; t += minStep) {
+      const dur = durationAtDeparture(fc, t, modeKey);
+      fine.push({ depTs: t, arriveTs: t + dur * 1000, dur });
+    }
+    if (!fine.length) {
+      const dur = durationAtDeparture(fc, now, modeKey);
+      fine.push({ depTs: now, arriveTs: now + dur * 1000, dur });
+    }
+    let best = null;
+    for (const c of fine) {
+      if (c.arriveTs <= cutoff) {
+        if (!best || c.depTs > best.depTs) best = c;
+      }
+    }
+    if (best) return { ...best, late: false };
+    const nowDur = durationAtDeparture(fc, now, modeKey);
+    return { depTs: now, arriveTs: now + nowDur * 1000, dur: nowDur, late: true };
+  }
+
+  // ---------- Polling ----------
+  // Target time already gone by? Treat the same as all-modes-late.
+  function targetIsInPast() {
+    const t = buildTargetDate();
+    return !t || t.getTime() <= Date.now();
+  }
+
+  // Enter the frozen "all modes late" state.
+  // - Stops further polling
+  // - Clears any error banner
+  // - Sets all three countdowns to "leave NOW" with current clock time
+  function enterAllLateMode() {
+    if (allModesLate) return; // already in this state
+    allModesLate = true;
+    if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+    clearError();
+  }
+
+  async function poll() {
+    // If frozen in all-late state or the target slipped into the past
+    // between polls, don't even attempt the API call — would fail anyway.
+    if (allModesLate) return;
+    if (targetIsInPast()) {
+      // We never set lateState explicitly here; updateDashboard handles it
+      // from the existing forecast. Just enter all-late mode.
+      enterAllLateMode();
+      // Still refresh dashboard with the existing forecast (if any)
+      if (forecast.length) { renderLog(); updateDashboard(); }
+      return;
+    }
+    try {
+      const fc = await buildForecast();
+      fc.sort((a, b) => a.depTs - b.depTs);
+      forecast = fc;
+      clearError();
+
+      const now = new Date();
+      // Compute active-mode leave-by for this poll to track recommendation drift
+      const target = buildTargetDate().getTime();
+      const bufferMs = parseInt(bufferSel.value, 10) * 60000;
+      const activeModeKey = selectedMode === 'relaxed' ? 'low' : selectedMode === 'important' ? 'high' : 'mean';
+      const activeLB = computeLeaveBy(fc, target, bufferMs, activeModeKey);
+      pollHistory.unshift({
+        time: fmtHM(now),
+        leftNow: fc[0],
+        sampleCount: fc.length,
+        leaveByTs: activeLB.late ? null : activeLB.depTs,
+        late: activeLB.late,
+      });
+      if (pollHistory.length > 24) pollHistory.pop();
+
+      renderLog();
+      updateDashboard();
+      checkAlertCondition();
+      scheduleNextPoll();
+    } catch (err) {
+      console.error(err);
+      const msg = err.message;
+      // If Google rejects because timestamp is in the past, just enter
+      // all-late mode rather than showing a confusing error banner.
+      if (msg.includes('400') && /future time|past/i.test(msg)) {
+        enterAllLateMode();
+        if (forecast.length) updateDashboard();
+        return;
+      }
+      let hint = '';
+      if (msg.includes('403')) {
+        hint = '<br/><br/><strong>Most likely cause:</strong> <strong>Routes API</strong> is not enabled in your Google Cloud project, or your API key restrictions don\'t include it.';
+      } else if (msg.includes('400')) {
+        hint = '<br/><br/>Check that the origin and destination addresses are valid.';
+      } else if (msg.includes('429')) {
+        hint = '<br/><br/>You\'ve hit a rate limit. Wait a minute and try again.';
+      }
+      showError('Routes API request failed', `<code>${msg}</code>${hint}`);
+      if (pollTimer) clearTimeout(pollTimer);
+      pollTimer = setTimeout(poll, 60000);
+    }
+  }
+
+  function scheduleNextPoll() {
+    if (!monitoring || !forecast.length || allModesLate) return;
+    const target = buildTargetDate().getTime();
+    const bufferMs = parseInt(bufferSel.value, 10) * 60000;
+    const modeKey = selectedMode === 'relaxed' ? 'low' : selectedMode === 'important' ? 'high' : 'mean';
+    const leaveBy = computeLeaveBy(forecast, target, bufferMs, modeKey);
+    const minsUntil = (leaveBy.depTs - Date.now()) / 60000;
+    const interval = pollIntervalMs(minsUntil);
+    if (pollTimer) clearTimeout(pollTimer);
+    pollTimer = setTimeout(poll, interval);
+  }
+
+  function checkAlertCondition() {
+    if (alertFired || !forecast.length) return;
+    const target = buildTargetDate().getTime();
+    const bufferMs = parseInt(bufferSel.value, 10) * 60000;
+    const modeKey = selectedMode === 'relaxed' ? 'low' : selectedMode === 'important' ? 'high' : 'mean';
+    const leaveBy = computeLeaveBy(forecast, target, bufferMs, modeKey);
+    if (leaveBy.depTs <= Date.now() || leaveBy.late) {
+      fireAlert(leaveBy);
+    }
+  }
+
+  function fireAlert(leaveBy) {
+    alertFired = true;
+    document.body.classList.add('alert-mode');
+    $('alertOverlay').classList.add('active');
+    const target = buildTargetDate();
+    const arriveAt = new Date(leaveBy.arriveTs);
+    if (leaveBy.late) {
+      $('alertMsg').textContent = `Even leaving now you'd arrive around ${fmtHM(arriveAt)} — past your ${fmtHM(target)} target. Drive time: ~${fmtMins(leaveBy.dur)}.`;
+    } else {
+      $('alertMsg').textContent = `Drive time is ~${fmtMins(leaveBy.dur)} (${selectedMode}). Leaving now arrives ~${fmtHM(arriveAt)}, against ${fmtHM(target)} target.`;
+    }
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Leave now!', { body: `Drive: ${fmtMins(leaveBy.dur)} · ETA ${fmtHM(arriveAt)}` });
+    }
+  }
+
+  // ---------- Mode selection ----------
+  function selectMode(mode) {
+    selectedMode = mode;
+    document.querySelectorAll('.mode-card').forEach(c => {
+      c.classList.toggle('selected', c.dataset.mode === mode);
+    });
+    document.querySelectorAll('.col').forEach(c => c.classList.remove('active-mode'));
+    const colMap = { relaxed: 'col-relaxed', usual: 'col-usual', important: 'col-important' };
+    const colEl = $(colMap[mode]);
+    if (colEl) colEl.classList.add('active-mode');
+    saveSettings();
+    if (monitoring) {
+      updateDashboard();
+      scheduleNextPoll();
+    }
+  }
+  modeGrid.addEventListener('click', e => {
+    const card = e.target.closest('.mode-card');
+    if (card) selectMode(card.dataset.mode);
+  });
+  ['relaxed', 'usual', 'important'].forEach(m => {
+    $(`col-${m}`).addEventListener('click', () => selectMode(m));
+  });
+
+  // ---------- Dashboard ----------
+  function setCountdownDisplay(el, parts) {
+    el.innerHTML = `<span>${parts.num}</span><span class="unit">${parts.unit}</span>`;
+  }
+
+  function updateDashboard() {
+    if (!forecast.length) return;
+    const target = buildTargetDate();
+    if (!target) return;
+    const bufferMin = parseInt(bufferSel.value, 10);
+    const bufferMs = bufferMin * 60000;
+
+    const modes = [
+      { key: 'relaxed', col: 'low' },
+      { key: 'usual', col: 'mean' },
+      { key: 'important', col: 'high' },
+    ];
+    let selectedLeaveBy = null;
+    for (const m of modes) {
+      const lb = computeLeaveBy(forecast, target.getTime(), bufferMs, m.col);
+      lateState[m.key] = lb.late;
+      const ltEl = $(`lt-${m.key}`);
+      const drEl = $(`dr-${m.key}`);
+      if (lb.late) {
+        ltEl.innerHTML = `leave <strong>NOW</strong>`;
+        drEl.textContent = `arrives ~${fmtHM(new Date(lb.arriveTs))}`;
+      } else {
+        ltEl.innerHTML = `leave at <strong>${fmtHM(new Date(lb.depTs))}</strong>`;
+        drEl.textContent = `drive ${fmtMins(lb.dur)}`;
+      }
+      if (m.key === selectedMode) selectedLeaveBy = lb;
+    }
+
+    // If all three modes are late, freeze polling
+    if (lateState.relaxed && lateState.usual && lateState.important) {
+      enterAllLateMode();
+    }
+
+    $('lateBanner').classList.toggle('active', lateState[selectedMode]);
+
+    // If-left-now stat
+    const nowDur = forecast[0].mean;
+    const nowEta = new Date(Date.now() + nowDur * 1000);
+    $('etaIfLeftNow').textContent = fmtHM(nowEta);
+    const diff = nowEta.getTime() - target.getTime();
+    if (diff <= 0) {
+      $('etaIfLeftNowSub').textContent = `${fmtMins(-diff/1000)} early`;
+    } else {
+      $('etaIfLeftNowSub').textContent = `${fmtMins(diff/1000)} late`;
+    }
+  }
+
+  function tickCountdown() {
+    if (!forecast.length || !monitoring) return;
+    const target = buildTargetDate();
+    if (!target) return;
+    const targetMs = target.getTime();
+    const bufferMs = parseInt(bufferSel.value, 10) * 60000;
+
+    const modes = [
+      { key: 'relaxed', col: 'low' },
+      { key: 'usual', col: 'mean' },
+      { key: 'important', col: 'high' },
+    ];
+    for (const m of modes) {
+      const lb = computeLeaveBy(forecast, targetMs, bufferMs, m.col);
+      const el = $(`cd-${m.key}`);
+      if (lb.late) {
+        el.innerHTML = `Late`;
+        el.classList.add('late');
+      } else {
+        const remain = lb.depTs - Date.now();
+        const parts = fmtCountdownParts(remain);
+        setCountdownDisplay(el, parts);
+        el.classList.toggle('alert', remain <= 0);
+        el.classList.remove('late');
+      }
+    }
+  }
+
+  function renderLog() {
+    const body = $('logBody');
+    if (!pollHistory.length) {
+      body.innerHTML = '<div class="log-empty">Awaiting first poll…</div>';
+      return;
+    }
+    // Walk history from oldest to newest to compute leave-by drift between polls.
+    // pollHistory is in reverse chrono (newest first); map index → previous (older)
+    // entry to compare each poll's leave-by to the one before it.
+    const rows = pollHistory.map((p, i) => {
+      const prev = pollHistory[i + 1]; // older
+      let trend = '—';
+      if (p.leaveByTs && prev && prev.leaveByTs) {
+        const diffMin = Math.round((p.leaveByTs - prev.leaveByTs) / 60000);
+        if (diffMin === 0) trend = '0m';
+        else if (diffMin > 0) trend = `<span class="trend-down">−${diffMin}m</span>`; // can leave later → traffic eased
+        else trend = `<span class="trend-up">+${-diffMin}m</span>`; // must leave earlier → worsening
+      }
+      const leaveByStr = p.late
+        ? '<span class="trend-up">LATE</span>'
+        : (p.leaveByTs ? fmtHM(new Date(p.leaveByTs)) : '—');
+      return `<div class="log-row">
+        <div style="color: var(--ink-faint)">${p.time}</div>
+        <div style="color: var(--relaxed)">${fmtMins(p.leftNow.low)}</div>
+        <div style="color: var(--usual)">${fmtMins(p.leftNow.mean)}</div>
+        <div style="color: var(--important)">${fmtMins(p.leftNow.high)}</div>
+        <div style="color: var(--ink); font-weight: 600;">${leaveByStr}<div style="font-size: 9px; color: var(--ink-faint); font-weight: 400; margin-top: 1px;">${trend}</div></div>
+      </div>`;
+    }).join('');
+    body.innerHTML = `
+      <div class="log-row head">
+        <div>time</div><div>low</div><div>mean</div><div>high</div><div>leave</div>
+      </div>
+      ${rows}
+    `;
+  }
+
+  // ---------- Start / Stop ----------
+  async function start() {
+    if (!API_KEY || API_KEY === 'fill in your Google API here') {
+      alert('Add your Google Maps API key to API_KEY at the top of this file first.');
+      return;
+    }
+    if (!originInput.value || !destInput.value || !targetTime.value) {
+      alert('Fill in origin, destination, and target arrival time.');
+      return;
+    }
+    if (!targetDate.value) setDateToday();
+    const target = buildTargetDate();
+    if (target.getTime() <= Date.now()) {
+      alert('Target arrival is in the past. Please pick a future date/time.');
+      return;
+    }
+    saveSettings();
+    if ('Notification' in window && Notification.permission === 'default') {
+      try { await Notification.requestPermission(); } catch (e) {}
+    }
+    monitoring = true;
+    alertFired = false;
+    pollHistory = [];
+    forecast = [];
+    anchor = null;
+    allModesLate = false;
+    $('dashboardPlaceholder').style.display = 'none';
+    $('mapCardWrap').style.display = 'block';
+    $('sidePanel').style.display = 'grid';
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'block';
+    selectMode(selectedMode);
+    countdownTimer = setInterval(tickCountdown, 1000);
+    drawRoute();
+    // Take the anchor poll FIRST (unless target is too soon to bother),
+    // so the very first fan-out cycle has a window to work with.
+    if (!isShortTarget()) {
+      try {
+        await takeAnchorPoll();
+      } catch (e) {
+        // Anchor failed — poll() will handle the error reporting
+        console.warn('Anchor poll failed, will retry in regular cycle:', e);
+      }
+    }
+    poll();
+  }
+  function stop() {
+    monitoring = false;
+    anchor = null;
+    allModesLate = false;
+    if (pollTimer) clearTimeout(pollTimer);
+    if (countdownTimer) clearInterval(countdownTimer);
+    document.body.classList.remove('alert-mode');
+    $('alertOverlay').classList.remove('active');
+    $('dashboardPlaceholder').style.display = 'flex';
+    $('mapCardWrap').style.display = 'none';
+    $('sidePanel').style.display = 'none';
+    startBtn.style.display = 'block';
+    stopBtn.style.display = 'none';
+  }
+
+  startBtn.addEventListener('click', start);
+  stopBtn.addEventListener('click', stop);
+  todayBtn.addEventListener('click', setDateToday);
+  $('dismissAlert').addEventListener('click', () => {
+    document.body.classList.remove('alert-mode');
+    $('alertOverlay').classList.remove('active');
+  });
+
+  // Silently auto-fill origin with current location on first load.
+  // No button, no prompt UI — just asks the browser permission once. If the
+  // user previously typed an origin (loaded from localStorage) we don't overwrite.
+  function autoFillOriginFromGPS() {
+    if (!navigator.geolocation) return;
+    if (originInput.value && originInput.value.trim()) return; // already set
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        // Don't overwrite if user has typed something while permission dialog was up
+        if (originInput.value && originInput.value.trim()) return;
+        originInput.value = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
+      },
+      () => { /* permission denied or unavailable — silently ignore */ },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5 * 60 * 1000 }
+    );
+  }
+
+  // Default date to today on load
+  setDateToday();
+  loadSettings();
+  loadGoogleMaps();
+  autoFillOriginFromGPS();
+</script>
+
+</body>
+</html>
