@@ -62,7 +62,8 @@ Fire the same route query three times with those three values and you get three 
 
 So `Relaxed = OPTIMISTIC`, `Usual = BEST_GUESS`, `Important = PESSIMISTIC`. The tool isn't predicting traffic better than Google. It's just packaging Google's own prediction range into a decision.
 
-*[DIAGRAM 1: the three_traffic_models_range diagram I generated for you — capture the rendered diagram and save as `./images/diagram-traffic-models.png`]*
+![Three points on a duration axis showing OPTIMISTIC at 22 min, BEST_GUESS at 34 min, and PESSIMISTIC at 50 min, with Relaxed, Usual, and Important mode labels mapped beneath each](./images/diagram-traffic-models.png)
+*The three traffic models from Google's Routes API, and how they map to the tool's three modes.*
 
 There's one small gotcha I spent an embarrassing amount of time on: `trafficModel` only takes effect when `routingPreference` is set to `TRAFFIC_AWARE_OPTIMAL`. The other routing preferences silently ignore the parameter and return the same number every time. The API doesn't error or warn — it just gives you what looks like real data, except it's identical regardless of which model you asked for. If you're building anything similar: check that setting first.
 
@@ -78,7 +79,8 @@ So instead of polling current conditions over and over, the tool samples the *fu
 
 Then every poll cycle, it picks two sample times *inside that window*, plus one "now" sample for live conditions. Each sample fires the three traffic-model queries in parallel. So a single poll cycle = 3 samples × 3 traffic models = 9 Routes API calls.
 
-*[DIAGRAM 2: the anchor_and_fan_out_sampling diagram I generated for you — capture the rendered diagram and save as `./images/diagram-sampling.png`]*
+![A timeline from now to target arrival. An anchor probe sits 20 minutes before target. Inside the realistic departure window, two fan-out sample points are placed, plus one "now" sample at the far left. Each sample fires three API calls](./images/diagram-sampling.png)
+*Anchor-and-fan-out sampling: one initial probe sizes the window, then each poll samples inside it.*
 
 Polling cadence adapts based on how close I am to leaving:
 
@@ -106,8 +108,6 @@ Under `APIs & Services → Library`, search for and enable each of these:
 - **Maps JavaScript API** — renders the map preview
 - **Places API** — address autocomplete on the input fields *(use the classic Places API, not "Places API (New)" — the autocomplete widget hasn't been updated for the new version yet)*
 - **Directions API** — draws the route polyline on the map
-
-[SCREENSHOT: Google Cloud Console with the four enabled APIs highlighted. Save as `./images/screenshot-cloud-console.png` — caption: "The four APIs you need enabled."]
 
 **3. (Recommended) Restrict the key.**
 
@@ -165,7 +165,7 @@ Things I'd build if I cared enough to keep working on it:
 
 The whole thing is one HTML file. Around 2,100 lines including styles and script. No build step, no dependencies installed locally — everything is fetched from CDNs (Google Fonts and Google Maps Platform). I think of it less as software and more as a Google Maps refresh button with delusions of grandeur.
 
-Repo: **[github.com/YOUR_USERNAME/leave-time-optimizer](https://github.com/YOUR_USERNAME/leave-time-optimizer)**
+Repo: **[github.com/lyhjeremy/leave-time-optimizer](https://github.com/lyhjeremy/leave-time-optimizer)**
 *[Replace this with the actual GitHub URL when you push the repo]*
 
 Clone it, drop in your API key, open the file. If you find yourself building a similar thing or end up forking it, I'd love to hear about it.
