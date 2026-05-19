@@ -160,13 +160,3 @@ Things I'd build if I cared enough to keep working on it:
 - **Transit and biking.** Driving only at the moment. Adding transit would be useful for the days I'm taking Metro to downtown and trying to time the headway.
 
 - **"Traffic just eased" notifications.** Not just "leave now" but also "your window just opened up — you can leave 8 minutes later than before." The math is already there; it just needs a different alert path.
-
-## The code
-
-The whole thing is one HTML file. Around 2,100 lines including styles and script. No build step, no dependencies installed locally — everything is fetched from CDNs (Google Fonts and Google Maps Platform). I think of it less as software and more as a Google Maps refresh button with delusions of grandeur.
-
-Repo: **[github.com/lyhjeremy/leave-time-optimizer](https://github.com/lyhjeremy/leave-time-optimizer)**
-
-Clone it, drop in your API key, open the file. If you find yourself building a similar thing or end up forking it, I'd love to hear about it.
-
-— *Jeremy Lee, May 2026*
