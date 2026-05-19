@@ -166,22 +166,7 @@ Things I'd build if I cared enough to keep working on it:
 The whole thing is one HTML file. Around 2,100 lines including styles and script. No build step, no dependencies installed locally — everything is fetched from CDNs (Google Fonts and Google Maps Platform). I think of it less as software and more as a Google Maps refresh button with delusions of grandeur.
 
 Repo: **[github.com/lyhjeremy/leave-time-optimizer](https://github.com/lyhjeremy/leave-time-optimizer)**
-*[Replace this with the actual GitHub URL when you push the repo]*
 
 Clone it, drop in your API key, open the file. If you find yourself building a similar thing or end up forking it, I'd love to hear about it.
 
-For now, it lives in a pinned tab on my laptop, and it's the reason I haven't been late to a flight in about a year.
-
 — *Jeremy Lee, May 2026*
-
----
-
-### Image credits
-
-For the hero image, I'd suggest grabbing a free-licensed LA freeway shot from one of these sources:
-
-- [Wikimedia Commons — Los Angeles freeway category](https://commons.wikimedia.org/wiki/Category:Freeways_in_Los_Angeles) (look for CC-BY or public-domain licenses)
-- [Unsplash](https://unsplash.com/s/photos/los-angeles-traffic) — free for commercial use, no attribution required but appreciated
-- [Pexels](https://www.pexels.com/search/los%20angeles%20traffic/) — similar free-use license
-
-Save the chosen image as `images/hero-405-traffic.jpg` (or update the path at the top of this file).
