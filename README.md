@@ -1,5 +1,7 @@
 ﻿# Leave Time Optimizer
 
+> 📖 **Product overview:** https://lyhjeremy.github.io/leave-time-optimizer/overview/
+
 A single-file web app that watches traffic and tells you the latest moment to leave home without being late. Built because I was tired of sitting in front of Google Maps doing mental subtraction before every LA trip.
 
 Uses Google Routes API with three traffic models (optimistic / best-guess / pessimistic) to give you Relaxed, Usual, and Important departure times side by side.
