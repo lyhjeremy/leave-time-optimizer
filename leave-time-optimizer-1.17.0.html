@@ -18,7 +18,7 @@
   //   2. Enable these 4 APIs at APIs & Services → Library:
   //        • Routes API           (traffic-aware forecasts)
   //        • Maps JavaScript API  (loads the map)
-  //        • Places API           (address autocomplete — classic, not "New")
+  //        • Places API           (address autocomplete: classic, not "New")
   //        • Directions API       (draws the route on the map)
   //
   //   3. (Recommended) Restrict the key: APIs & Services → Credentials →
@@ -29,13 +29,16 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Leave Time Optimizer · 1.17.0</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+@font-face{font-family:"Source Serif 4";src:url("fonts/SourceSerif4-400.woff2")format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Source Serif 4";src:url("fonts/SourceSerif4-600.woff2")format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"IBM Plex Sans";src:url("fonts/IBMPlexSans-400.woff2")format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"IBM Plex Sans";src:url("fonts/IBMPlexSans-600.woff2")format("woff2");font-weight:600;font-display:swap}
+@font-face{font-family:"IBM Plex Mono";src:url("fonts/IBMPlexMono-400.woff2")format("woff2");font-weight:400;font-display:swap}
+
   :root {
     --bg: #fafaf7;
-    --bg-card: #ffffff;
+    --bg-card: #F5F5F0;
     --bg-elev: #f3f3ee;
     --bg-tint: #f7f5ee;
     --ink: #1a1a1a;
@@ -67,13 +70,10 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { background: var(--bg); color: var(--ink); min-height: 100vh; }
   body {
-    font-family: 'Inter', -apple-system, sans-serif;
+    font-family: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 14px;
     line-height: 1.55;
     padding: 16px 20px 20px;
-    background-image:
-      radial-gradient(ellipse 60% 40% at 15% 0%, rgba(45, 95, 63, 0.04), transparent),
-      radial-gradient(ellipse 50% 30% at 100% 0%, rgba(184, 134, 11, 0.04), transparent);
   }
   body.alert-mode {
     animation: alertFlash 0.9s ease-in-out infinite alternate;
@@ -115,7 +115,7 @@
     height: 2px;
     background: var(--accent);
     opacity: 0.25;
-    border-radius: 2px;
+    border-radius: 0;
   }
   .subtitle {
     font-size: 12px;
@@ -145,15 +145,14 @@
     padding-right: 2px;
   }
   .col-panel::-webkit-scrollbar { width: 5px; }
-  .col-panel::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+  .col-panel::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 0; }
 
   /* Card primitive */
   .card {
     background: var(--bg-card);
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: 0;
     padding: 13px;
-    box-shadow: var(--shadow-sm);
   }
   .card + .card { margin-top: 10px; }
   .card-label {
@@ -171,7 +170,7 @@
     content: '';
     width: 5px; height: 5px;
     background: var(--accent);
-    border-radius: 50%;
+    border-radius: 0;
   }
 
   /* Form */
@@ -187,32 +186,29 @@
   .input-row { display: flex; gap: 6px; }
   input[type="text"], input[type="time"], input[type="date"], select {
     width: 100%;
-    background: #fff;
+    background: #F5F5F0;
     border: 1px solid var(--line-strong);
     color: var(--ink);
     padding: 8px 10px;
-    font-family: 'Inter', sans-serif;
+    font-family: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 13px;
-    border-radius: var(--radius-sm);
+    border-radius: 0;
     outline: none;
-    transition: all 0.18s;
   }
   input:focus, select:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(45, 95, 63, 0.12);
   }
   .btn-mini {
-    background: #fff;
+    background: #F5F5F0;
     border: 1px solid var(--line-strong);
     color: var(--ink-dim);
     padding: 0 12px;
-    font-family: 'Inter', sans-serif;
+    font-family: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
-    border-radius: var(--radius-sm);
-    transition: all 0.15s;
+    border-radius: 0;
     letter-spacing: 0.04em;
   }
   .btn-mini:hover { border-color: var(--accent); color: var(--accent); }
@@ -222,7 +218,7 @@
     gap: 8px;
   }
 
-  /* Mode selector — grows to fill its slot in the left grid */
+  /* Mode selector, grows to fill its slot in the left grid */
   .mode-card-outer {
     display: flex;
     flex-direction: column;
@@ -242,10 +238,9 @@
     padding: 14px 12px;
     background: var(--bg-elev);
     border: 1px solid transparent;
-    border-radius: var(--radius-sm);
+    border-radius: 0;
     cursor: pointer;
     text-align: center;
-    transition: all 0.18s;
     flex: 1 1 0;
     min-height: 0;
     display: flex;
@@ -253,15 +248,14 @@
     justify-content: center;
     align-items: center;
   }
-  .mode-card:hover { background: #fff; }
+  .mode-card:hover { background: #F5F5F0; }
   .mode-card.selected {
-    background: #fff;
+    background: #F5F5F0;
     border-color: var(--accent);
-    box-shadow: 0 0 0 2px rgba(45, 95, 63, 0.08);
   }
-  .mode-card.selected.relaxed   { border-color: var(--relaxed); box-shadow: 0 0 0 2px rgba(45, 95, 63, 0.08); }
-  .mode-card.selected.usual     { border-color: var(--usual); box-shadow: 0 0 0 2px rgba(184, 134, 11, 0.10); }
-  .mode-card.selected.important { border-color: var(--important); box-shadow: 0 0 0 2px rgba(181, 72, 52, 0.10); }
+  .mode-card.selected.relaxed   { border-color: var(--relaxed); }
+  .mode-card.selected.usual     { border-color: var(--usual); }
+  .mode-card.selected.important { border-color: var(--important); }
   .mode-card .name {
     font-size: 15px;
     font-weight: 700;
@@ -281,33 +275,29 @@
     width: 100%;
     margin-top: 10px;
     background: var(--accent);
-    color: #fff;
+    color: #F5F5F0;
     border: none;
     padding: 18px 11px;
-    font-family: 'Inter', sans-serif;
+    font-family: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     cursor: pointer;
-    border-radius: var(--radius-sm);
-    transition: all 0.18s;
-    box-shadow: 0 2px 6px rgba(45, 95, 63, 0.15);
+    border-radius: 0;
   }
   .btn-primary:hover {
     background: var(--accent-bright);
-    box-shadow: 0 4px 10px rgba(45, 95, 63, 0.2);
     transform: translateY(-1px);
   }
   .btn-primary.stop {
-    background: #fff;
+    background: #F5F5F0;
     color: var(--alert);
     border: 1px solid var(--alert);
-    box-shadow: none;
   }
   .btn-primary.stop:hover {
     background: var(--alert);
-    color: #fff;
+    color: #F5F5F0;
     transform: translateY(-1px);
   }
 
@@ -318,16 +308,15 @@
     color: #6b5400;
     padding: 14px 16px;
     margin-bottom: 12px;
-    border-radius: var(--radius);
+    border-radius: 0;
     font-size: 13px;
-    box-shadow: var(--shadow-md);
   }
   .api-key-warn strong { color: #6b5400; }
   .api-key-warn code {
     background: rgba(0,0,0,0.08);
     padding: 1px 5px;
-    border-radius: 3px;
-    font-family: 'JetBrains Mono', monospace;
+    border-radius: 0;
+    font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
     font-size: 11px;
   }
   .api-key-warn ul { margin: 6px 0 0 18px; padding: 0; }
@@ -340,31 +329,28 @@
     color: var(--alert);
     padding: 12px 14px;
     margin-bottom: 12px;
-    border-radius: var(--radius);
+    border-radius: 0;
     font-size: 12px;
     display: none;
-    box-shadow: var(--shadow-sm);
   }
   .error-banner.active { display: block; }
   .error-banner strong { display: block; margin-bottom: 4px; font-size: 13px; }
   .error-banner code {
     background: rgba(181, 72, 52, 0.1);
     padding: 1px 5px;
-    border-radius: 3px;
-    font-family: 'JetBrains Mono', monospace;
+    border-radius: 0;
+    font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
     font-size: 11px;
   }
 
-  /* RIGHT COLUMN — mode countdown cards (sized by parent grid) */
+  /* RIGHT COLUMN, mode countdown cards (sized by parent grid) */
   .col {
     background: var(--bg-card);
     border: 1px solid var(--line);
     padding: 14px 12px;
     text-align: center;
-    border-radius: var(--radius);
+    border-radius: 0;
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: var(--shadow-sm);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -372,25 +358,23 @@
     align-items: center;
   }
   .col:hover {
-    box-shadow: var(--shadow-md);
     transform: translateY(-1px);
   }
   .col.active-mode {
     border-color: var(--accent);
     border-width: 2px;
     padding: 11px 9px;
-    box-shadow: 0 0 0 4px rgba(45, 95, 63, 0.08), var(--shadow-lg);
   }
-  .col.active-mode.relaxed { border-color: var(--relaxed); box-shadow: 0 0 0 4px rgba(45, 95, 63, 0.08), var(--shadow-lg); }
-  .col.active-mode.usual   { border-color: var(--usual); box-shadow: 0 0 0 4px rgba(184, 134, 11, 0.10), var(--shadow-lg); }
-  .col.active-mode.important { border-color: var(--important); box-shadow: 0 0 0 4px rgba(181, 72, 52, 0.10), var(--shadow-lg); }
+  .col.active-mode.relaxed { border-color: var(--relaxed); }
+  .col.active-mode.usual   { border-color: var(--usual); }
+  .col.active-mode.important { border-color: var(--important); }
   .col.active-mode::before {
     content: '';
     position: absolute;
     top: 0; left: 12px; right: 12px;
     height: 3px;
     background: var(--accent);
-    border-radius: 0 0 3px 3px;
+    border-radius: 0;
   }
   .col.active-mode.relaxed::before { background: var(--relaxed); }
   .col.active-mode.usual::before   { background: var(--usual); }
@@ -421,7 +405,7 @@
     white-space: nowrap;
   }
   .col-countdown .unit {
-    font-family: 'Inter', sans-serif;
+    font-family: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 13px;
     font-weight: 500;
     color: var(--ink-dim);
@@ -457,7 +441,7 @@
   .col-leaveat strong {
     color: var(--ink);
     font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
     font-size: 15px;
   }
   .col-drive {
@@ -466,7 +450,7 @@
   }
   .col-drive strong {
     color: var(--ink-dim);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
     font-weight: 600;
   }
 
@@ -504,11 +488,10 @@
     left: 12px;
     background: rgba(255, 255, 255, 0.97);
     padding: 10px 14px;
-    border-radius: var(--radius-sm);
+    border-radius: 0;
     font-size: 13px;
     font-weight: 500;
     color: var(--ink-dim);
-    box-shadow: var(--shadow-lg);
     display: none;
     z-index: 1;
   }
@@ -548,46 +531,44 @@
   .range-sub {
     font-size: 12px;
     color: var(--ink-dim);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
   }
   .range-bar {
     height: 32px;
     position: relative;
     background: var(--bg-elev);
-    border-radius: 6px;
+    border-radius: 0;
     overflow: visible;
   }
   .range-fill {
     position: absolute;
     height: 100%;
+    /* ledger-allow: gradient (data scale: comfortable to late) */
     background: linear-gradient(90deg,
-      rgba(45, 95, 63, 0.55) 0%,
-      rgba(184, 134, 11, 0.55) 50%,
-      rgba(181, 72, 52, 0.55) 100%);
-    border-radius: 6px;
+      rgba(44, 88, 82, 0.55) 0%,
+      rgba(122, 90, 30, 0.55) 50%,
+      rgba(140, 58, 30, 0.55) 100%);
+    border-radius: 0;
   }
   .range-mean-marker {
     position: absolute;
     top: -3px; bottom: -3px;
     width: 4px;
     background: var(--ink);
-    transition: left 0.5s cubic-bezier(.2,.7,.3,1);
-    border-radius: 3px;
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.7);
+    border-radius: 0;
   }
   /* Active mode position indicator (the value the active column is showing) */
   .range-active-marker {
     position: absolute;
     bottom: -22px;
     transform: translateX(-50%);
-    transition: left 0.5s cubic-bezier(.2,.7,.3,1);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
     font-size: 11px;
     font-weight: 700;
     color: var(--ink);
     background: var(--bg-card);
     padding: 1px 6px;
-    border-radius: 3px;
+    border-radius: 0;
     border: 1px solid var(--line-strong);
     white-space: nowrap;
   }
@@ -614,7 +595,7 @@
     margin-top: 28px;
     font-size: 14px;
     color: var(--ink-dim);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
     font-weight: 600;
   }
   .range-labels .l-low  { color: var(--relaxed); }
@@ -626,9 +607,8 @@
   .stat-mini {
     background: var(--bg-card);
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: 0;
     padding: 9px 12px;
-    box-shadow: var(--shadow-sm);
     display: flex;
     justify-content: space-between;
     align-items: baseline;
@@ -663,11 +643,10 @@
     padding: 10px 14px;
     background: var(--bg-card);
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: 0;
     font-size: 12px;
     color: var(--ink-dim);
     font-weight: 500;
-    box-shadow: var(--shadow-sm);
   }
   .status-bar.error {
     background: var(--alert-soft);
@@ -679,7 +658,7 @@
     display: inline-block;
     width: 7px; height: 7px;
     background: var(--good);
-    border-radius: 50%;
+    border-radius: 0;
     margin-right: 7px;
     animation: pulse 1.8s ease-in-out infinite;
   }
@@ -693,7 +672,7 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
     padding: 3px 8px;
-    border-radius: 10px;
+    border-radius: 0;
     border: 1px solid var(--line-strong);
     background: var(--bg-elev);
     color: var(--ink-dim);
@@ -727,15 +706,15 @@
   .ap-bar {
     height: 8px;
     background: var(--bg-elev);
-    border-radius: 4px;
+    border-radius: 0;
     overflow: hidden;
     position: relative;
   }
   .ap-fill {
     height: 100%;
+    /* ledger-allow: gradient (data scale: on time to alert) */
     background: linear-gradient(90deg, var(--good) 0%, var(--warn) 70%, var(--alert) 100%);
-    transition: width 0.6s cubic-bezier(.2,.7,.3,1);
-    border-radius: 4px;
+    border-radius: 0;
   }
   .ap-feet {
     display: flex;
@@ -743,7 +722,7 @@
     margin-top: 6px;
     font-size: 11px;
     color: var(--ink-faint);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
   }
 
   /* Forecast curve */
@@ -765,7 +744,7 @@
   .forecast-summary strong {
     color: var(--ink);
     font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
   }
   /* Log */
   .log { padding: 0; overflow: hidden; }
@@ -781,7 +760,7 @@
   }
   .log-body { max-height: 180px; overflow-y: auto; }
   .log-body::-webkit-scrollbar { width: 5px; }
-  .log-body::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+  .log-body::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 0; }
   .log-row {
     display: grid;
     grid-template-columns: 60px 1fr 1fr 1fr 64px;
@@ -789,7 +768,7 @@
     padding: 8px 14px;
     border-bottom: 1px solid var(--line);
     font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
     align-items: baseline;
   }
   .log-row:last-child { border-bottom: none; }
@@ -800,7 +779,7 @@
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    font-family: 'Inter', sans-serif;
+    font-family: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
   .log-row .trend-up   { color: var(--alert); font-weight: 600; }
   .log-row .trend-down { color: var(--good); font-weight: 600; }
@@ -821,7 +800,6 @@
     z-index: 1000;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(10px);
     animation: fadeIn 0.3s ease;
   }
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -832,8 +810,7 @@
     max-width: 460px;
     background: var(--bg-card);
     border: 1px solid var(--alert);
-    border-radius: 14px;
-    box-shadow: 0 20px 50px rgba(181, 72, 52, 0.2);
+    border-radius: 0;
     animation: slideUp 0.4s cubic-bezier(.2,.8,.2,1);
   }
   @keyframes slideUp {
@@ -858,17 +835,16 @@
   }
   .alert-box button {
     background: var(--alert);
-    color: #fff;
+    color: #F5F5F0;
     border: none;
     padding: 11px 28px;
-    font-family: 'Inter', sans-serif;
+    font-family: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     cursor: pointer;
-    border-radius: var(--radius-sm);
-    transition: all 0.18s;
+    border-radius: 0;
   }
   .alert-box button:hover { transform: translateY(-1px); }
 
@@ -878,23 +854,21 @@
     border: 1px solid var(--alert);
     color: var(--alert);
     padding: 9px 13px;
-    border-radius: var(--radius);
+    border-radius: 0;
     font-size: 12px;
     font-weight: 600;
     margin-bottom: 10px;
     display: none;
-    box-shadow: var(--shadow-sm);
   }
   .late-banner.active { display: block; }
 
   /* PAC override */
   .pac-container {
-    background: #fff;
+    background: #F5F5F0;
     border: 1px solid var(--line-strong);
-    border-radius: var(--radius-sm);
-    font-family: 'Inter', sans-serif;
+    border-radius: 0;
+    font-family: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
     margin-top: 3px;
-    box-shadow: var(--shadow-lg);
     z-index: 9999;
   }
   .pac-item {
@@ -909,7 +883,7 @@
   .pac-matched { color: var(--accent); font-weight: 600; }
 
   /* Column layout */
-  /* LEFT COLUMN — grid: Route&Timing fits content, Mode grows, then Button + Attribution */
+  /* LEFT COLUMN: grid: Route&Timing fits content, Mode grows, then Button + Attribution */
   .col-panel:not(.middle-panel):not(.right-panel) {
     display: grid;
     grid-template-rows: auto 1fr auto auto;
@@ -941,7 +915,7 @@
   }
   .middle-panel > .card { flex: 1 1 auto; min-height: 0; }
 
-  /* RIGHT COLUMN — 5 boxes at natural height; leftover space distributed as equal gaps */
+  /* RIGHT COLUMN, 5 boxes at natural height; leftover space distributed as equal gaps */
   .right-panel {
     display: grid;
     grid-template-rows: auto auto auto auto auto;
@@ -984,9 +958,8 @@
     justify-content: space-between;
     background: var(--bg-card);
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: 0;
     padding: 14px 16px;
-    box-shadow: var(--shadow-sm);
   }
 
   /* Placeholder when not monitoring */
@@ -1022,7 +995,7 @@
 </style>
 </head>
 <body>
-<a href="overview/" data-overview-link style="display:block;background:#1a1a2e;color:#FBF8F1;text-align:center;padding:11px 18px;font:600 14.5px/1.45 -apple-system,'Helvetica Neue',Arial,sans-serif;letter-spacing:.01em;text-decoration:none">Read the full writeup&nbsp;&rarr;</a>
+<a href="overview/" data-overview-link style="display:block;background:#1C1E1B;color:#EDEDE7;text-align:center;padding:11px 18px;font:600 14.5px/1.45 -apple-system,'Helvetica Neue',Arial,sans-serif;letter-spacing:.01em;text-decoration:none">Read the full writeup&nbsp;&rarr;</a>
 
 
 <div class="wrap">
@@ -1036,20 +1009,20 @@
 
   <!-- API KEY WARNING -->
   <div id="apiKeyWarn" class="api-key-warn" style="display:none;">
-    <strong>⚠ Setup required.</strong>
+    <strong>Setup required.</strong>
     Open this file in a text editor and paste your Google Maps API key into the <code>API_KEY</code> variable near the top. You also need these 4 APIs enabled in Google Cloud Console:
     <ul>
-      <li><strong>Routes API</strong> — for traffic-aware forecasts</li>
-      <li><strong>Maps JavaScript API</strong> — loads the map</li>
-      <li><strong>Places API</strong> (the classic one, not "New") — address autocomplete</li>
-      <li><strong>Directions API</strong> — draws the route on the map</li>
+      <li><strong>Routes API</strong>, for traffic-aware forecasts</li>
+      <li><strong>Maps JavaScript API</strong>, loads the map</li>
+      <li><strong>Places API</strong> (the classic one, not "New"), address autocomplete</li>
+      <li><strong>Directions API</strong>, draws the route on the map</li>
     </ul>
   </div>
 
   <!-- ERROR BANNER -->
   <div id="errorBanner" class="error-banner">
     <strong>API error</strong>
-    <div id="errorMessage">—</div>
+    <div id="errorMessage">n/a</div>
   </div>
 
   <!-- THREE-COLUMN LAYOUT (1 : 3 : 1) -->
@@ -1113,7 +1086,7 @@
 
       <button id="startBtn" class="btn-primary btn-big">Start Monitoring</button>
       <button id="stopBtn" class="btn-primary stop btn-big" style="display:none;">Stop Monitoring</button>
-      <div class="attribution">by Jeremy Lee — 2026</div>
+      <div class="attribution">by Jeremy Lee, 2026</div>
     </div>
 
     <!-- MIDDLE: Map only -->
@@ -1130,7 +1103,7 @@
             <div>Route preview loading…</div>
           </div>
         </div>
-        <div class="map-meta" id="mapMeta">—</div>
+        <div class="map-meta" id="mapMeta">n/a</div>
       </div>
     </div>
 
@@ -1138,41 +1111,41 @@
     <div class="col-panel right-panel" id="sidePanel" style="display:none;">
 
       <div id="lateBanner" class="late-banner">
-        Late on selected mode — leave now.
+        Late on selected mode, leave now.
       </div>
 
       <div class="col relaxed" id="col-relaxed">
         <div class="col-name">Relaxed</div>
-        <div class="col-countdown" id="cd-relaxed">—</div>
+        <div class="col-countdown" id="cd-relaxed">n/a</div>
         <div class="col-headline-label">until you leave</div>
         <div class="col-divider"></div>
-        <div class="col-leaveat" id="lt-relaxed">—</div>
-        <div class="col-drive" id="dr-relaxed">—</div>
+        <div class="col-leaveat" id="lt-relaxed">n/a</div>
+        <div class="col-drive" id="dr-relaxed">n/a</div>
       </div>
       <div class="col usual active-mode" id="col-usual">
         <div class="col-name">Usual</div>
-        <div class="col-countdown" id="cd-usual">—</div>
+        <div class="col-countdown" id="cd-usual">n/a</div>
         <div class="col-headline-label">until you leave</div>
         <div class="col-divider"></div>
-        <div class="col-leaveat" id="lt-usual">—</div>
-        <div class="col-drive" id="dr-usual">—</div>
+        <div class="col-leaveat" id="lt-usual">n/a</div>
+        <div class="col-drive" id="dr-usual">n/a</div>
       </div>
       <div class="col important" id="col-important">
         <div class="col-name">Important</div>
-        <div class="col-countdown" id="cd-important">—</div>
+        <div class="col-countdown" id="cd-important">n/a</div>
         <div class="col-headline-label">until you leave</div>
         <div class="col-divider"></div>
-        <div class="col-leaveat" id="lt-important">—</div>
-        <div class="col-drive" id="dr-important">—</div>
+        <div class="col-leaveat" id="lt-important">n/a</div>
+        <div class="col-drive" id="dr-important">n/a</div>
       </div>
 
       <div class="stat-mini if-leave-now-card">
         <div>
           <div class="label">If Leave Now</div>
-          <div class="sub" id="etaIfLeftNowSub">—</div>
+          <div class="sub" id="etaIfLeftNowSub">n/a</div>
         </div>
         <div class="stat-right">
-          <div class="value" id="etaIfLeftNow">—</div>
+          <div class="value" id="etaIfLeftNow">n/a</div>
         </div>
       </div>
 
@@ -1349,10 +1322,10 @@
   const MAP_STYLES = [
     { elementType: 'geometry', stylers: [{ color: '#f5f3ed' }] },
     { elementType: 'labels.text.fill', stylers: [{ color: '#6a6a64' }] },
-    { elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#F5F5F0' }] },
     { featureType: 'administrative', elementType: 'geometry', stylers: [{ visibility: 'off' }] },
     { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#F5F5F0' }] },
     { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#fdfdfd' }] },
     { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#e8e1d0' }] },
     { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#d8d0bd' }] },
@@ -1410,7 +1383,7 @@
         $('mapMeta').classList.add('show');
       } else {
         $('mapPlaceholder').style.display = 'flex';
-        $('mapPlaceholder').innerHTML = `<div class="icon">—</div><div>Could not load route (${status}).<br/>Make sure <strong>Directions API</strong> is enabled.</div>`;
+        $('mapPlaceholder').innerHTML = `<div class="icon">n/a</div><div>Could not load route (${status}).<br/>Make sure <strong>Directions API</strong> is enabled.</div>`;
       }
     });
   }
@@ -1460,7 +1433,7 @@
       const [y, mo, d] = date.split('-').map(Number);
       target = new Date(y, mo - 1, d, hh, mm, 0, 0);
     } else {
-      // No date — assume today, and if past, tomorrow
+      // No date: assume today, and if past, tomorrow
       const now = new Date();
       target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0, 0);
       if (target <= now) target.setDate(target.getDate() + 1);
@@ -1475,14 +1448,14 @@
 
   // ---------- Routes API ----------
   //
-  // ⚠ KEY INSIGHT: Google Maps gets its "22-50 min" typical range by
+  // KEY INSIGHT: Google Maps gets its "22-50 min" typical range by
   // querying the Routes API with THREE different traffic models and taking the
   // spread between them:
   //   • OPTIMISTIC  → historical good-traffic-day duration (low)
   //   • BEST_GUESS  → realistic point estimate including live traffic (mean)
   //   • PESSIMISTIC → historical bad-traffic-day duration (high)
   //
-  // BUT — the trafficModel parameter is ONLY honored when routingPreference is
+  // BUT. The trafficModel parameter is ONLY honored when routingPreference is
   // TRAFFIC_AWARE_OPTIMAL (not TRAFFIC_AWARE). TRAFFIC_AWARE_OPTIMAL is also
   // the same engine Google Maps uses on maps.google.com.  This makes our range
   // match Google's UI almost exactly.
@@ -1591,7 +1564,7 @@
   }
 
   // Compute the departure window from the anchor.
-  // Returns { startTs, endTs } — both clock times, anchored before target.
+  // Returns { startTs, endTs }, both clock times, anchored before target.
   function computeWindow() {
     const target = buildTargetDate().getTime();
     const bufferMs = parseInt(bufferSel.value, 10) * 60000;
@@ -1659,7 +1632,7 @@
 
     // ─── low/mean/high come DIRECTLY from Google ───
     // Each sample is the result of three parallel Routes API calls using
-    // OPTIMISTIC, BEST_GUESS, PESSIMISTIC traffic models — the same data
+    // OPTIMISTIC, BEST_GUESS, PESSIMISTIC traffic models. The same data
     // source Google Maps uses for its "typically X-Y min" range display.
     //
     // For each sample we ALSO widen the range to include the spread across
@@ -1750,7 +1723,7 @@
 
   async function poll() {
     // If frozen in all-late state or the target slipped into the past
-    // between polls, don't even attempt the API call — would fail anyway.
+    // between polls, don't even attempt the API call. Would fail anyway.
     if (allModesLate) return;
     if (targetIsInPast()) {
       // We never set lateState explicitly here; updateDashboard handles it
@@ -1839,7 +1812,7 @@
     const target = buildTargetDate();
     const arriveAt = new Date(leaveBy.arriveTs);
     if (leaveBy.late) {
-      $('alertMsg').textContent = `Even leaving now you'd arrive around ${fmtHM(arriveAt)} — past your ${fmtHM(target)} target. Drive time: ~${fmtMins(leaveBy.dur)}.`;
+      $('alertMsg').textContent = `Even leaving now you'd arrive around ${fmtHM(arriveAt)}, past your ${fmtHM(target)} target. Drive time: ~${fmtMins(leaveBy.dur)}.`;
     } else {
       $('alertMsg').textContent = `Drive time is ~${fmtMins(leaveBy.dur)} (${selectedMode}). Leaving now arrives ~${fmtHM(arriveAt)}, against ${fmtHM(target)} target.`;
     }
@@ -1963,7 +1936,7 @@
     // entry to compare each poll's leave-by to the one before it.
     const rows = pollHistory.map((p, i) => {
       const prev = pollHistory[i + 1]; // older
-      let trend = '—';
+      let trend = 'n/a';
       if (p.leaveByTs && prev && prev.leaveByTs) {
         const diffMin = Math.round((p.leaveByTs - prev.leaveByTs) / 60000);
         if (diffMin === 0) trend = '0m';
@@ -1972,7 +1945,7 @@
       }
       const leaveByStr = p.late
         ? '<span class="trend-up">LATE</span>'
-        : (p.leaveByTs ? fmtHM(new Date(p.leaveByTs)) : '—');
+        : (p.leaveByTs ? fmtHM(new Date(p.leaveByTs)) : 'n/a');
       return `<div class="log-row">
         <div style="color: var(--ink-faint)">${p.time}</div>
         <div style="color: var(--relaxed)">${fmtMins(p.leftNow.low)}</div>
@@ -2029,7 +2002,7 @@
       try {
         await takeAnchorPoll();
       } catch (e) {
-        // Anchor failed — poll() will handle the error reporting
+        // Anchor failed. Poll() will handle the error reporting
         console.warn('Anchor poll failed, will retry in regular cycle:', e);
       }
     }
@@ -2059,7 +2032,7 @@
   });
 
   // Silently auto-fill origin with current location on first load.
-  // No button, no prompt UI — just asks the browser permission once. If the
+  // No button, no prompt UI, just asks the browser permission once. If the
   // user previously typed an origin (loaded from localStorage) we don't overwrite.
   function autoFillOriginFromGPS() {
     if (!navigator.geolocation) return;
@@ -2070,7 +2043,7 @@
         if (originInput.value && originInput.value.trim()) return;
         originInput.value = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
       },
-      () => { /* permission denied or unavailable — silently ignore */ },
+      () => { /* permission denied or unavailable: silently ignore */ },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 5 * 60 * 1000 }
     );
   }

@@ -1,6 +1,7 @@
+Design and copy follow [these standards](https://github.com/lyhjeremy/lyhjeremy/blob/main/DESIGN_STANDARDS.md).
 ﻿# Leave Time Optimizer
 
-> 📖 **Product overview:** https://lyhjeremy.github.io/leave-time-optimizer/overview/
+> **Product overview:** https://lyhjeremy.github.io/leave-time-optimizer/overview/
 
 A single-file web app that watches traffic and tells you the latest moment to leave home without being late. Built because I was tired of sitting in front of Google Maps doing mental subtraction before every LA trip.
 
@@ -24,6 +25,6 @@ See [leave-time-optimizer-article.md](leave-time-optimizer-article.md) for the s
 
 ## License
 
-MIT — do whatever you want with it.
+MIT. Do whatever you want with it.
 
-— Jeremy Lee
+Jeremy Lee
