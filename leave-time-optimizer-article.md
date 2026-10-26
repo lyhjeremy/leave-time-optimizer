@@ -1,162 +1,137 @@
 ---
 title: "I built a tool that tells me when to leave home"
-description: "A small browser app that watches LA traffic and tells me the latest I can leave without being late. Here's the story, the math, and the code."
+description: "A one-file browser app that watches LA traffic through Google's Routes API and tells me the latest I can leave without being late. The problem, the sampling design and the setup."
 author: "Jeremy Lee"
 date: 2026-05-18
 tags: [los-angeles, traffic, google-maps, javascript, side-project]
 ---
 
-![A wide aerial view of bumper-to-bumper traffic on the 405 freeway in Los Angeles](./images/hero-405-traffic.jpg)
-*[HERO IMAGE: LA freeway traffic, see "Image credits" at the end for free-licensed sources]*
+![Aerial view of bumper-to-bumper traffic on the 405 freeway in Los Angeles](./images/hero-405-traffic.jpg)
 
-## The problem with leaving on time in LA
+## Leaving on time in LA
 
-If you've lived in Los Angeles, you know this dance.
+If you have lived in Los Angeles, you know the routine.
 
-You have somewhere to be. Maybe it's a 4:30 PM flight out of LAX, a 7 PM dinner downtown, or your cousin's wedding in San Gabriel at 2. The drive itself isn't long, Google Maps says 28 minutes, but you've been burned enough times to know that 28 minutes can become 65 minutes with no warning, and the difference between leaving at 1:15 versus 1:25 can decide whether you walk in calm or sweating through your shirt.
+You have somewhere to be: a 4:30 PM flight out of LAX, a 7 PM dinner downtown, a cousin's wedding in San Gabriel at 2. Google Maps says the drive is 28 minutes, but you have been burned enough times to know 28 can become 65 with no warning, and leaving at 1:15 instead of 1:25 can decide whether you walk in calm or sweating through your shirt.
 
-So you do what every Angeleno does: you sit at home, refreshing Google Maps every few minutes, doing mental subtraction.
+So you sit at home refreshing Google Maps every few minutes and doing mental subtraction.
 
 > *"It's 28 minutes now. If I add a 15-minute buffer... and traffic usually gets worse around 1:30... should I leave in 5 minutes? 12? Do I have time to put on real shoes?"*
 
-The information is all there in Google Maps. It even gives you that helpful little range, *"typically 22–50 min"*, that captures exactly how unpredictable your route is. But it's static. It doesn't tell you *when* to leave. It tells you what driving conditions look like right now, and leaves the optimization problem to you.
+Maps has the information. It even shows a range, *"typically 22 to 50 min"*, that describes how unpredictable the route is. What it doesn't do is tell you *when* to leave. It describes the drive if you left now and leaves the scheduling to you.
 
-I wanted to leave **as late as possible** without being late. That's two competing goals: don't waste time pacing around the kitchen, and don't get stuck on the 10 with no margin. The optimization is mostly mental math, repeated every few minutes, until you finally commit and walk out the door.
+I wanted to leave as late as possible without being late. Those two goals pull against each other: don't waste twenty minutes pacing the kitchen, and don't get stuck on the 10 with no margin. Getting it right is the same subtraction repeated every few minutes until you commit and walk out.
 
-So I built a small thing to do that math for me.
+So I built a small app to do that subtraction for me.
 
 ## What it does
 
-It's a single-page web app you open in a browser tab while you're getting ready. You tell it three things:
+It is a single web page you open in a browser tab while you get ready. You give it three things:
 
-- Where you're starting from
-- Where you're going
-- When you need to be there
+- where you're starting from
+- where you're going
+- when you need to be there
 
-It then picks the **latest possible departure time** that still gets you there on time, displays a countdown, and quietly polls Google's Routes API in the background to update the recommendation as traffic shifts. When the moment to actually leave arrives, it fires a browser notification and an on-screen alert.
+It works out the latest departure time that still gets you there on time, shows a countdown, and polls Google's Routes API in the background to update the answer as traffic changes. When it's time to leave, it sends a browser notification and shows an on-screen alert.
 
-The countdown comes in three flavors, side by side, so you can pick your risk tolerance for any given trip:
+There are three countdowns side by side, one per risk level:
 
-- **Relaxed.** Assumes traffic stays light. Latest leave-by time.
-- **Usual.** Typical traffic for this route at this time. Middle ground.
-- **Important.** Assumes traffic gets bad. Earliest leave-by time, with margin built in.
+- **Relaxed** assumes traffic stays light. Latest leave-by time.
+- **Usual** assumes typical traffic for the route at that hour.
+- **Important** assumes traffic gets bad. Earliest leave-by time.
 
-For a Tuesday lunch with a friend who's chronically late anyway, I pick Relaxed and squeeze every extra minute at home. For a flight or a job interview, I pick Important and accept that I might arrive twenty minutes early.
+For a Tuesday lunch with a friend who is always late, I go by Relaxed and stay home as long as I can. For a flight or a job interview, I go by Important and accept that I might arrive twenty minutes early.
 
-![The main dashboard showing a route from UCLA to LAX Terminal 7, with three side-by-side countdowns: Relaxed leaves at 6:15 PM, Usual at 6:02 PM, Important at 5:38 PM](./images/screenshot-dashboard-ucla-lax.png)
-*The dashboard mid-monitoring: a 6:45 PM arrival at LAX Terminal 7 from UCLA. Look at the spread: Relaxed says 24 minutes of driving, Important says 61. Same route, same destination, same arrival target. The mode you pick decides whether you leave at 6:15 PM or 5:38 PM.*
+![The dashboard for a UCLA to LAX Terminal 7 trip: Relaxed says leave at 6:15 PM, Usual at 6:02 PM, Important at 5:38 PM](./images/screenshot-dashboard-ucla-lax.png)
+*A 6:45 PM arrival at LAX Terminal 7 from UCLA, with a 5-minute buffer. Relaxed expects 24 minutes of driving, Usual 37 and Important 61. The mode decides whether I leave at 6:15 or 5:38.*
 
-That screenshot is the whole pitch of the tool in one image. Twenty-four minutes versus sixty-one minutes is not a small difference. It's the difference between *one more episode* and *go now*. And it's not the tool guessing. It's Google Maps' own range, made into a decision you can act on.
+That screenshot is the whole case for the tool. A 24-minute drive and a 61-minute drive are the difference between one more episode and leaving right now. Those numbers come from Google's own range; the app turns them into a time on the clock.
 
-## How it works: the three traffic models
+## Where the three modes come from
 
-The clever bit (and honestly the only bit I'm proud of) is that those three risk profiles aren't something I invented. They come straight out of Google's Routes API.
+The three risk levels are not something I made up. They come from Google's Routes API.
 
-When you query Google for a route, you can specify a `trafficModel` parameter. There are three options:
+A route request can include a `trafficModel` parameter with one of three values:
 
-- `OPTIMISTIC`. Assumes traffic conditions are better than typical
-- `BEST_GUESS`, Google's realistic point estimate using live and historical data
-- `PESSIMISTIC`, assumes worse-than-typical conditions
+- `OPTIMISTIC` assumes traffic will be better than typical.
+- `BEST_GUESS` is Google's realistic estimate from live and historical data.
+- `PESSIMISTIC` assumes traffic will be worse than typical.
 
-Fire the same route query three times with those three values and you get three different durations. That spread is exactly the "typically 22–50 min" range Google Maps shows in its UI. **They're using the same three values.** It's just that the consumer Maps app shows you the range and lets you eyeball it, while the developer API hands you each estimate as a number you can compute with.
+Send the same request with each value and you get three durations. Their spread is the "typically 22 to 50 min" range the Maps app shows. The consumer app shows the range for you to eyeball; the developer API gives you each end as a number you can compute with.
 
-So `Relaxed = OPTIMISTIC`, `Usual = BEST_GUESS`, `Important = PESSIMISTIC`. The tool isn't predicting traffic better than Google. It's just packaging Google's own prediction range into a decision.
+So Relaxed is `OPTIMISTIC`, Usual is `BEST_GUESS` and Important is `PESSIMISTIC`. The app doesn't predict traffic any better than Google does. It packages Google's prediction range into a decision.
 
-![Three points on a duration axis showing OPTIMISTIC at 22 min, BEST_GUESS at 34 min, and PESSIMISTIC at 50 min, with Relaxed, Usual, and Important mode labels mapped beneath each](./images/diagram-traffic-models.png)
-*The three traffic models from Google's Routes API, and how they map to the tool's three modes.*
+![A duration axis with OPTIMISTIC at 22 min, BEST_GUESS at 34 min and PESSIMISTIC at 50 min, and the Relaxed, Usual and Important labels beneath each](./images/diagram-traffic-models.png)
+*The three traffic models and the modes they map to, on an illustrative 22 to 50 minute range.*
 
-There's one small gotcha I spent an embarrassing amount of time on: `trafficModel` only takes effect when `routingPreference` is set to `TRAFFIC_AWARE_OPTIMAL`. The other routing preferences silently ignore the parameter and return the same number every time. The API doesn't error or warn. It just gives you what looks like real data, except it's identical regardless of which model you asked for. If you're building anything similar: check that setting first.
+One gotcha cost me an embarrassing amount of time: `trafficModel` only takes effect when `routingPreference` is `TRAFFIC_AWARE_OPTIMAL`. With any other routing preference the API ignores the parameter. It doesn't error or warn; it returns the same duration for all three models, and that looks like real data. If you build anything similar, check that setting first.
 
 ## The sampling problem
 
-Here's where the design gets a little more interesting.
+The obvious version asks Google every few minutes how long the drive is right now and updates the countdown. That works, sort of, but it answers the wrong question. If I plan to leave at 6:00 PM and it's 5:00 PM, the current drive time describes traffic at 5:00. In LA the 405 at 5:00 and the 405 at 6:00 are close to different freeways.
 
-Naive version: every few minutes, ask Google "how long is the drive right now?" and update the countdown. This works, sort of, but it has a subtle flaw. If I'm planning to leave at 6:00 PM and it's currently 5:00 PM, "the drive right now" tells me what traffic looks like at 5:00 PM, not at 6:00 PM. And in LA, those two numbers can be very different. The 405 at 5:00 PM and the 405 at 6:00 PM are almost different freeways.
+What I want to know is how long the drive will take if I leave during my likely departure window.
 
-What I actually want to know is: **how long will the drive take if I leave during my likely departure window?**
+So the app samples the future. When I press Start, it sends one anchor request for a departure 20 minutes before my target arrival. From that duration it builds a departure window: the window ends at the target minus my buffer, and starts the anchor duration plus 15 minutes before that.
 
-So instead of polling current conditions over and over, the tool samples the *future*. On startup, it fires one "anchor" probe asking Google for the drive time if I left 20 minutes before my target. That gives a baseline duration. From the baseline, it computes a "realistic departure window", roughly the range of times I'd plausibly leave to arrive on schedule.
+Each poll then picks two departure times inside the window, plus one "now" sample for live conditions, and sends the three traffic-model requests for each in parallel. One poll is 3 samples times 3 models, or 9 Routes API calls. If the target is less than 25 minutes away, the app skips the window and samples only "now".
 
-Then every poll cycle, it picks two sample times *inside that window*, plus one "now" sample for live conditions. Each sample fires the three traffic-model queries in parallel. So a single poll cycle = 3 samples × 3 traffic models = 9 Routes API calls.
+![A timeline from now to target arrival: an anchor probe 20 minutes before the target, two sample points inside the departure window and one "now" sample, each firing three API calls](./images/diagram-sampling.png)
+*Anchor-and-fan-out sampling: one request sizes the window, then each poll samples inside it.*
 
-![A timeline from now to target arrival. An anchor probe sits 20 minutes before target. Inside the realistic departure window, two fan-out sample points are placed, plus one "now" sample at the far left. Each sample fires three API calls](./images/diagram-sampling.png)
-*Anchor-and-fan-out sampling: one initial probe sizes the window, then each poll samples inside it.*
+The polling interval depends on how far away departure is:
 
-Polling cadence adapts based on how close I am to leaving:
+- more than 60 minutes out: every 15 minutes
+- 30 to 60 minutes out: every 8 minutes
+- under 30 minutes out: every 3 minutes
 
-- More than 60 minutes out → poll every 15 minutes
-- 30 to 60 minutes out → every 8 minutes
-- Less than 30 minutes out → every 3 minutes
+Far from departure, little changes between polls. Close to it, the numbers need to be fresh.
 
-The further from departure, the less anything has changed; the closer I get, the more it matters that the numbers are fresh.
+## Setup
 
-## How to set it up
+The app is one HTML file with no build step, no install and no server. The only external dependency is Google Maps Platform. Setup takes about five minutes.
 
-The whole thing is one HTML file. No build step, no install, no server. Open it in a browser. The only external dependency is Google Maps Platform.
+**1. Get a Google Maps API key.** In the [Google Cloud Console](https://console.cloud.google.com/), create a project (or use an existing one), then go to `APIs & Services → Credentials → Create Credentials → API key`. The key looks like `AIzaSy...`.
 
-Setup takes about five minutes:
+**2. Enable four APIs.** Under `APIs & Services → Library`, enable:
 
-**1. Get a Google Maps API key.**
+- Routes API, for the traffic-aware forecasts
+- Maps JavaScript API, for the map preview
+- Places API, for address autocomplete. Use the classic Places API, not "Places API (New)"; the autocomplete widget has not been updated for the new one.
+- Directions API, to draw the route line on the map
 
-Go to the [Google Cloud Console](https://console.cloud.google.com/), create a project (or use an existing one), then `APIs & Services → Credentials → Create Credentials → API key`. Copy the key. It'll look like `AIzaSy...`.
+**3. Restrict the key (recommended).** In Credentials, open the key and under `API restrictions` allow only those four APIs. If the key leaks, nobody can use it for anything else on your bill.
 
-**2. Enable four APIs.**
-
-Under `APIs & Services → Library`, search for and enable each of these:
-
-- **Routes API.** The traffic-aware forecasts (this is the main one)
-- **Maps JavaScript API.** Renders the map preview
-- **Places API.** Address autocomplete on the input fields *(use the classic Places API, not "Places API (New)". The autocomplete widget hasn't been updated for the new version yet)*
-- **Directions API.** Draws the route polyline on the map
-
-**3. (Recommended) Restrict the key.**
-
-While you're in Credentials, click your key and under `API restrictions`, check only those four APIs. This means if the key leaks, nobody can use it for anything else on your bill.
-
-**4. Paste the key into the HTML.**
-
-Open the HTML file in a text editor. At the very top, there's a line that reads:
+**4. Paste the key into the HTML.** Open `leave-time-optimizer-1.17.0.html` in a text editor and find this line near the top:
 
 ```js
 const API_KEY = 'fill in your Google API here';
 ```
 
-Replace the placeholder with your actual key, save, and open the file in a browser.
+Replace the placeholder with your key, save, and open the file in a browser.
 
-**5. Use it.**
+**5. Use it.** Enter origin, destination and arrival time, then click "Start Monitoring". The countdown starts, the map draws the route, and the app polls Google in the background. At leave time you get a browser notification (if you allowed notifications) and an on-screen alert.
 
-Type your origin, destination, and target arrival time. Click "Start Monitoring." The countdown begins, the map draws your route, and the tool polls Google in the background. When it's time to leave, you'll get a browser notification (if you've granted permission) and an on-screen alert.
+At the time of writing a poll cycle cost roughly $0.05 in Routes API usage, and a typical session ran 5 to 15 cycles. A trip from my couch to LAX costs between fifty cents and a dollar to plan, which is less than a parking ticket.
 
-A poll cycle costs roughly $0.05 in Routes API usage at the time of writing, and a typical monitoring session uses 5–15 cycles. So a single trip from my couch to LAX costs me somewhere between fifty cents and a dollar to plan. Cheaper than the parking ticket I'd get for arriving late.
+## Interface choices
 
-## Why I made the UI like that
+**Three countdowns at once.** I considered a dropdown: pick Usual, see one countdown. In practice the spread between the three is the information I want. In the UCLA to LAX screenshot, Relaxed and Important are 37 minutes apart. A gap that size says the route is volatile and I should go by Important for anything I care about. On a calmer route the three land within five minutes of each other and Relaxed is safe. A dropdown would hide that.
 
-A few of the design decisions are worth talking about briefly, because they affect how the tool actually feels to use.
+**Poll history.** Every poll adds a row to a table at the bottom right of the dashboard, with the low, mean and high durations and the resulting leave-by time. A green `-2m` means traffic eased and I can leave a little later than the previous poll said; a red `+3m` means it is getting worse. Over a session, the trend tells me whether the current recommendation has settled.
 
-**Three countdowns at once, side by side.** I considered making the risk profile a dropdown. Pick Usual, see one countdown. But in practice, the *spread* between the three is the information I actually want. Go back to the UCLA-to-LAX screenshot above: the spread between Relaxed and Important is 37 minutes, which is huge. That gap tells me the route is wildly variable and I should pick Important for anything I care about. On a calmer route, the three modes might cluster within five minutes of each other, and Relaxed becomes safe. **The gap is the signal.** Hiding two of the three would hide that signal.
+**A real notification.** The tab stays in the background while I pack a bag or look for my keys, so the alert has to come from the operating system, not from a change in a tab I can't see.
 
-**The poll history table.** Every poll appears as a row at the bottom-right of the dashboard, with the leave-by time and how it changed since the previous poll. A green `-2m` means traffic eased and I can leave slightly later than the previous poll suggested; a red `+3m` means it's worsening and I need to leave earlier. Over the course of a monitoring session, the trend line tells me whether to trust the current recommendation or whether things are still moving fast.
+**Defaults.** Today's date is preselected. The mode resets to Usual on each load. The origin tries to fill itself from GPS, and the last destination is kept in `localStorage`. By the time the tab has loaded, the form is usually one field away from ready.
 
-**Browser notification on alert.** I keep this tab in the background. The whole point is that I'm not staring at a countdown, I'm packing my bag, finishing an email, looking for my keys. The notification has to break through whatever else I'm doing, which means OS-level, not just a visual change in a tab I can't see.
+**Type for glancing.** The countdowns use a large serif numeral, because from the corner of my eye the shape of "18h 4min" reads faster than the digits. The poll-history table is set in a monospace face so the columns line up.
 
-**Defaults that don't surprise.** Today's date is preselected. The mode resets to Usual on each load. The origin tries to auto-fill from GPS (silently, no permission popup unless you click the input). Last-used destination persists in `localStorage`. These all feel small individually, but together they mean the form is usually one field away from being ready by the time I've opened the tab.
+## Limitations and what I'd add
 
-**Typography for a tool you'll glance at, not stare at.** The countdowns use a large serif numeral (`Instrument Serif`) because in my peripheral vision, the *shape* of "18h 4min" reads faster than the digits themselves. Inputs and metadata use `Inter`. The poll-history table uses `JetBrains Mono` so the columns line up. None of this is groundbreaking, but together it makes the tool feel like an instrument rather than a form.
-
-## What it doesn't do (yet)
-
-Things I'd build if I cared enough to keep working on it:
-
-- **Mobile layout.** The current three-column grid breaks below 1080px wide. It's a desktop-only tool, which is exactly the wrong shape for something you'd want to check while running around the house. A responsive single-column reflow is the most obvious next step.
-
-- **Native mobile app.** Beyond responsive, a real iOS/Android app could use silent push notifications instead of relying on a browser tab being open. The current architecture, keep a tab alive in Chrome, works but is fragile. Lock your phone for too long and the JavaScript pauses.
-
-- **Calendar integration.** Right now I type the address and target time every trip. Pulling those from Google Calendar would cut the friction to zero. Open the tool, click an upcoming event, done.
-
-- **Saved routes.** Home → Office, Home → LAX, Home → my parents' place in San Gabriel. One-tap presets would make the tool useful for routine trips, not just rare important ones.
-
-- **Multi-stop trips.** Pick up X, then go to Y. The Routes API supports waypoints; the UI doesn't yet.
-
-- **Transit and biking.** Driving only at the moment. Adding transit would be useful for the days I'm taking Metro to downtown and trying to time the headway.
-
-- **"Traffic just eased" notifications.** Not just "leave now" but also "your window just opened up. You can leave 8 minutes later than before." The math is already there; it just needs a different alert path.
+- **Phones.** The layout is built for a desktop browser. Below 1080px the three columns stack into one long page, but nothing in it was designed for a phone, which is the wrong shape for something you check while running around the house.
+- **A native app.** The app depends on a browser tab staying alive. Lock a phone for too long and the JavaScript pauses. A real iOS or Android app could use push notifications instead.
+- **Calendar integration.** I type the address and arrival time for every trip. Pulling them from Google Calendar would remove that step.
+- **Saved routes.** One-tap presets for Home to Office, Home to LAX, Home to my parents' place in San Gabriel would make it useful for routine trips too.
+- **Multi-stop trips.** The Routes API supports waypoints; the interface doesn't yet.
+- **Transit and biking.** It handles driving only.
+- **"Traffic just eased" alerts.** A notice that says "you can leave 8 minutes later than before". The numbers are already computed; it needs a second alert path.

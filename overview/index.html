@@ -4,54 +4,56 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Leave Time Optimizer: the latest you can leave without being late</title>
-<meta name="description" content="A browser app that watches LA traffic and tells you the latest moment to leave. Three risk profiles from Google's own optimistic, best-guess and pessimistic traffic models, sampled into the future rather than the present." />
-<meta name="theme-color" content="#EDEDE7" />
+<meta name="description" content="A one-file browser app that queries Google's three traffic models for times inside your departure window and counts down to the latest safe departure for three risk levels." />
+<meta name="theme-color" content="#E9EAE6" />
 <meta property="og:title" content="Leave Time Optimizer" />
-<meta property="og:description" content="Google Maps tells you what traffic is doing now. This tells you when to walk out the door." />
+<meta property="og:description" content="UCLA to LAX, arrive 6:45 PM: leave at 6:15, 6:02 or 5:38 depending on how much the trip matters. Three Google traffic models turned into three countdowns." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://lyhjeremy.github.io/leave-time-optimizer/overview/" />
+<link href="" rel="stylesheet" />
 <style>
-@font-face{font-family:"Source Serif 4";src:url("../fonts/SourceSerif4-400.woff2")format("woff2");font-weight:400;font-display:swap}
-@font-face{font-family:"Source Serif 4";src:url("../fonts/SourceSerif4-600.woff2")format("woff2");font-weight:600;font-display:swap}
-@font-face{font-family:"IBM Plex Sans";src:url("../fonts/IBMPlexSans-400.woff2")format("woff2");font-weight:400;font-display:swap}
-@font-face{font-family:"IBM Plex Sans";src:url("../fonts/IBMPlexSans-600.woff2")format("woff2");font-weight:600;font-display:swap}
-@font-face{font-family:"IBM Plex Mono";src:url("../fonts/IBMPlexMono-400.woff2")format("woff2");font-weight:400;font-display:swap}
-
   :root {
-    --paper: #EDEDE7;
-    --card: #F5F5F0;
-    --plate: #F5F5F0;
-    --ink: #1C1E1B;
-    --ink2: #3d3d55;
-    --muted: #52564E;
-    --rule: #C6C7BF;
-    --accent: #C2410C;
-    --accent2: #8C3A1E;
-    --link: #8C3A1E;
-    --serif: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
-    --sans: 'Source Sans 3', -apple-system, system-ui, sans-serif;
-    --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
-    --shadow: 0 1px 2px rgba(26,26,46,.05), 0 10px 34px rgba(26,26,46,.07);
+    --paper: #E9EAE6;
+    --card: #F2F3EF;
+    --plate: #F2F3EF;
+    --ink: #191B1A;
+    --ink2: #4B504D;
+    --muted: #4B504D;
+    --rule: #C3C6C1;
+    --accent: #2F6243;
+    --accent2: #7C5A26;
+    --link: #2F6243;
+    --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+    --sans: "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --mono: "IBM Plex Mono", "SF Mono", Menlo, Consolas, monospace;
+    --display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+    --edge: #727773;
     --spine:  92px;
     --col:    min(100% - 2.6rem, 62rem);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --paper: #14141f;
-      --card: #1c1c2a;
-      --plate: #f7f4ec;
-      --ink: #F2EFE6;
-      --ink2: #C9C4B6;
-      --muted: #918B7D;
-      --rule: #33313f;
-      --accent: #FB923C;
-      --accent2: #22D3EE;
-      --link: #22D3EE;
-      --shadow: 0 1px 2px rgba(0,0,0,.32), 0 10px 34px rgba(0,0,0,.4);
+      --paper: #161817;
+      --card: #1F2220;
+      --plate: #1F2220;
+      --ink: #E3E5E1;
+      --ink2: #A0A6A1;
+      --muted: #A0A6A1;
+      --rule: #373B38;
+      --accent: #7DC096;
+      --accent2: #CBA668;
+      --link: #7DC096;
+      --edge: #686E6A;
     }
   }
 
-  * { box-sizing: border-box; }
+  @font-face{font-family:"Source Serif 4";src:url("../fonts/SourceSerif4-400.woff2")format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:"Source Serif 4";src:url("../fonts/SourceSerif4-600.woff2")format("woff2");font-weight:600;font-display:swap}
+  @font-face{font-family:"IBM Plex Sans";src:url("../fonts/IBMPlexSans-400.woff2")format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:"IBM Plex Sans";src:url("../fonts/IBMPlexSans-600.woff2")format("woff2");font-weight:600;font-display:swap}
+  @font-face{font-family:"IBM Plex Mono";src:url("../fonts/IBMPlexMono-400.woff2")format("woff2");font-weight:400;font-display:swap}
+
+  * { box-sizing: border-box; border-radius: 0; }
   html { scroll-behavior: smooth; }
   body {
     margin: 0; background: var(--paper); color: var(--ink);
@@ -210,63 +212,102 @@
     html { scroll-behavior: auto; }
     .btn { }
   }
+  @font-face{font-family:"IBM Plex Sans Condensed";src:url("../fonts/IBMPlexSansCondensed-600.woff2")format("woff2");font-weight:600;font-style:normal;font-display:swap}
+  @font-face{font-family:"IBM Plex Mono";src:url("../fonts/IBMPlexMono-600.woff2")format("woff2");font-weight:600;font-style:normal;font-display:swap}
 
+  .btn:hover { transform: none; background: var(--accent); border-color: var(--accent); color: var(--paper); }
+  .pull { border: 1px solid var(--edge); border-left: 1px solid var(--edge); background: transparent; }
+  .term { background: var(--card); color: var(--ink); border: 1px solid var(--rule); }
+  .term .c { color: var(--muted); } .term .g { color: var(--accent2); } .term .y { color: var(--accent); }
+  .logo, .hero h1, h2, .claim .n, .bignum { font-family: var(--display); }
+
+  /* Workshop: an engineering spec sheet. Condensed headings, mono labels, numbered sections. */
+  .masthead { border: 1px solid var(--edge); padding: 10px 14px; margin-top: 24px; justify-content: space-between; }
+  .logo { font-weight: 600; font-size: 19px; letter-spacing: 0; }
+  .tagline { font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .1em; }
+  .hero h1 { font-weight: 600; font-size: clamp(40px, 6.4vw, 78px); letter-spacing: -.02em; line-height: 1; max-width: 17ch; }
+  .kicker { font-family: var(--mono); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); }
+  h2 { font-weight: 600; letter-spacing: -.015em; font-size: clamp(28px, 3.6vw, 38px); }
+  .claims { border: 1px solid var(--edge); gap: 0; }
+  .claim, .claim:first-child, .claim:nth-child(2) { border-top: 0; border-bottom: 1px solid var(--rule); padding: 18px 20px; }
+  @media (min-width: 760px) { .claim:nth-child(odd) { border-right: 1px solid var(--rule); } }
+  .claim .n { font-family: var(--mono); font-weight: 600; font-size: 34px; letter-spacing: -.02em; }
+  .bignum { font-family: var(--mono); font-weight: 600; letter-spacing: -.04em; }
+  .route { counter-reset: sec; }
+  .route::before { width: 1px; background: var(--edge); }
+  .stop { counter-increment: sec; }
+  .stop::before { content: counter(sec, decimal-leading-zero); width: auto; height: auto; left: 0; top: 4px;
+                  border: 0; background: none; font: 600 13px/1 var(--mono); color: var(--accent); padding: 4px 0;
+                  background: var(--paper); }
+  .stop--key::before, .stop--warn::before, .stop--end::before { background: var(--paper); border: 0; }
+  .stop--end::before { color: var(--ink); }
+
+
+  .readout { margin-top: 30px; border: 1px solid var(--edge); background: var(--card); }
+  .readout-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 9px 16px; border-bottom: 1px solid var(--edge); font: 600 11.5px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .readout table { min-width: 520px; font-family: var(--mono); font-size: 14.5px; }
+  .readout td.mode { font-family: var(--display); font-weight: 600; font-size: 19px; color: var(--ink); }
+  .readout td.leave { font-weight: 600; font-size: 22px; color: var(--accent); }
+  .readout td.model { color: var(--muted); font-size: 13px; }
+  .readout-foot { max-width: none; margin: 0; padding: 10px 16px; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 14px; color: var(--muted); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="masthead">
-    <div class="logo"><span class="dot" aria-hidden="true"></span>Leave Time Optimizer</div>
-    <div class="tagline">the latest you can leave, updated live</div>
+    <div class="logo">Leave Time Optimizer</div>
+    <div class="tagline">departure monitor / v1.17.0 / one HTML file</div>
   </header>
 
   <section class="hero">
-    <p class="kicker">Google Maps tells you what traffic is doing right now.</p>
-    <h1>It does not tell you when to put your shoes on.</h1>
+    <p class="kicker">Google Routes API, three traffic models</p>
+    <h1>It works out the latest time you can leave and still arrive on time</h1>
 
     <p class="hero-sub">
-      Every Angeleno knows the routine: refresh Maps, do mental subtraction, guess.
-      This does the arithmetic instead. Tell it where you're going and when you need
-      to be there, and it picks the <strong>latest departure that still gets you
-      there on time</strong>, counts down to it, and keeps re-checking traffic in
-      the background until it tells you to go.
+      Google Maps shows how long the drive takes if you leave now and a range like
+      "typically 22 to 50 min". It does not tell you when to leave. This app takes
+      an origin, a destination and an arrival time, asks Google's Routes API how
+      long the drive will take at departure times inside your likely window, and
+      counts down to the latest safe departure for three risk levels. It keeps
+      polling while you get ready and sends a browser notification when it is time
+      to go.
     </p>
 
     <div class="cta-row">
       <a class="btn btn-primary" href="https://github.com/lyhjeremy/leave-time-optimizer">Get the app</a>
-      <a class="textlink" href="../leave-time-optimizer-article.html">or read the full story</a>
+      <a class="textlink" href="../leave-time-optimizer-article.html">Read the article</a>
     </div>
 
     <figure style="margin-top:38px">
-      <img class="shot" src="../images/screenshot-dashboard-ucla-lax.png" fetchpriority="high"
-        alt="The Leave Time Optimizer dashboard monitoring a UCLA to LAX Terminal 7 trip for a 6:45 PM arrival, showing three side-by-side countdowns: Relaxed leaving at 6:15 PM, Usual at 6:02 PM, and Important at 5:38 PM." />
+      <img width="1910" height="889" class="shot" src="../images/screenshot-dashboard-ucla-lax.png" fetchpriority="high"
+        alt="The Leave Time Optimizer dashboard monitoring a UCLA to LAX Terminal 7 trip for a 6:45 PM arrival, with three countdowns on the right: Relaxed leave at 6:15 PM, Usual at 6:02 PM, Important at 5:38 PM." />
       <figcaption>
-        UCLA to LAX Terminal 7, arriving 6:45 PM. Relaxed says
-        <strong>24 minutes</strong> of driving. Important says <strong>61</strong>.
-        Same route, same target. The mode decides whether you leave at 6:15 or
-        5:38.
+        UCLA to LAX Terminal 7, arriving 6:45 PM with a 5-minute buffer. Relaxed
+        expects a 24-minute drive and Important expects 61 minutes, so the
+        leave-by times are 37 minutes apart.
       </figcaption>
     </figure>
 
     <div class="claims">
       <div class="claim">
-        <div class="n">3</div>
-        <p>risk profiles side by side, so you choose your margin per trip instead
-           of guessing one buffer for everything.</p>
+        <div class="n">37 min</div>
+        <p>Gap between the Relaxed and Important leave-by times on that trip. The
+           size of the gap tells you how unpredictable the route is.</p>
       </div>
       <div class="claim">
-        <div class="n">37 min</div>
-        <p>the spread between Relaxed and Important on that one real trip. That is
-           the decision the tool exists to make.</p>
+        <div class="n">3</div>
+        <p>Risk levels, each one of Google's <code>trafficModel</code> values:
+           optimistic, best guess, pessimistic.</p>
       </div>
       <div class="claim">
         <div class="n">9</div>
-        <p>Routes API calls per poll cycle: three sample times × three traffic
-           models, because sampling only "now" is the wrong question.</p>
+        <p>Routes API calls per poll: three departure times, each queried with all
+           three traffic models.</p>
       </div>
       <div class="claim">
-        <div class="n">1 file</div>
-        <p>A single self-contained HTML page. Paste in your API key and open it.</p>
+        <div class="n">15 / 8 / 3</div>
+        <p>Minutes between polls when departure is more than 60, 30 to 60, and
+           under 30 minutes away.</p>
       </div>
     </div>
   </section>
@@ -276,116 +317,126 @@
 <div class="route">
 
   <section class="stop stop--key">
-    <p class="eyebrow">↓ where the three modes come from</p>
-    <h2>Not invented. Google already publishes the range.</h2>
+    <p class="eyebrow">Readout</p>
+    <h2>Three traffic models, three leave-by times</h2>
     <p>
-      The three profiles are not a heuristic layered on top of Google. They are
-      Google's own <code>trafficModel</code> parameter, queried three times:
+      The risk levels come from Google. The Routes API has a
+      <code>trafficModel</code> parameter with three values, and the app sends the
+      same route request once with each. The spread between the three answers is
+      the same "typically X to Y min" range the Maps app shows; the API returns
+      each end of it as a number.
     </p>
-    <div class="grid">
-      <div class="cell">
-        <h3>Relaxed = <code>OPTIMISTIC</code></h3>
-        <p>Assumes conditions are better than typical. The latest leave-by time.
-           For lunch with a friend who is late anyway.</p>
+    <div class="readout">
+      <div class="readout-head"><span>UCLA to LAX T7</span><span>Arrive 6:45 PM, buffer 5 min</span></div>
+      <div class="tablewrap" style="margin:0;border:0">
+        <table>
+          <thead><tr><th>Mode</th><th>trafficModel</th><th>Drive</th><th>Leave at</th></tr></thead>
+          <tbody>
+            <tr><td class="mode">Relaxed</td><td class="model">OPTIMISTIC</td><td>24 min</td><td class="leave">6:15 PM</td></tr>
+            <tr><td class="mode">Usual</td><td class="model">BEST_GUESS</td><td>37 min</td><td class="leave">6:02 PM</td></tr>
+            <tr><td class="mode">Important</td><td class="model">PESSIMISTIC</td><td>61 min</td><td class="leave">5:38 PM</td></tr>
+          </tbody>
+        </table>
       </div>
-      <div class="cell">
-        <h3>Usual = <code>BEST_GUESS</code></h3>
-        <p>Google's realistic point estimate from live and historical data.</p>
-      </div>
-      <div class="cell">
-        <h3>Important = <code>PESSIMISTIC</code></h3>
-        <p>Assumes worse than typical. The earliest leave-by time, with margin
-           built in. For flights and interviews.</p>
-      </div>
+      <p class="readout-foot">Read from the dashboard screenshot above, taken 18 May 2026.</p>
     </div>
     <p style="margin-top:24px">
-      That spread is exactly the <em>"typically 22–50 min"</em> range the consumer
-      Maps app shows you. The difference is that Maps hands you a range to eyeball
-      and the developer API hands you three numbers you can compute with. The tool
-      is not predicting traffic better than Google. It is
-      <strong>turning Google's own uncertainty into a decision</strong>.
+      Relaxed is for lunch with a friend who is always late. Important is for a
+      flight or an interview, and accepts arriving early. Showing all three at once
+      is deliberate: on a calm route they land within a few minutes of each other
+      and Relaxed is safe; on the 405 at rush hour they do not.
     </p>
     <figure>
       <div class="plate">
-        <img src="../images/diagram-traffic-models.png" loading="lazy"
-          alt="Diagram of a duration axis with OPTIMISTIC at 22 minutes, BEST_GUESS at 34 minutes and PESSIMISTIC at 50 minutes, with the Relaxed, Usual and Important mode labels mapped beneath each." />
+        <img width="1553" height="891" src="../images/diagram-traffic-models.png" loading="lazy"
+          alt="Diagram of a duration axis with OPTIMISTIC at 22 minutes, BEST_GUESS at 34 minutes and PESSIMISTIC at 50 minutes, with the Relaxed, Usual and Important mode labels beneath each." />
       </div>
-      <figcaption>Three models, three modes.</figcaption>
+      <figcaption>How the three traffic models map to the three modes, using an illustrative 22 to 50 minute range.</figcaption>
     </figure>
     <div class="pull">
-      <p><code>trafficModel</code> is silently ignored unless
-         <code>routingPreference</code> is <code>TRAFFIC_AWARE_OPTIMAL</code>. No
-         error, no warning. You just get the same number back for all three
-         models and it looks like real data.</p>
-      <span class="who">The gotcha that cost an embarrassing amount of time</span>
+      <p>The Routes API ignores <code>trafficModel</code> unless
+         <code>routingPreference</code> is <code>TRAFFIC_AWARE_OPTIMAL</code>. It
+         returns no error. You get the same duration for all three models, and it
+         looks like real data.</p>
+      <span class="who">The bug that took longest to find</span>
     </div>
   </section>
 
   <section class="stop">
-    <p class="eyebrow">↓ the design decision</p>
-    <h2>Sampling the future, not the present</h2>
+    <p class="eyebrow">Sampling</p>
+    <h2>It asks about the time you will leave, not the time it is now</h2>
     <p>
-      The naive build polls "how long is the drive right now" every few minutes.
-      It works, and it answers the wrong question. If it is 5:00 PM and you plan to
-      leave at 6:00, current conditions tell you about the 405 at 5:00, and the
-      405 at 5:00 and the 405 at 6:00 are close to different freeways.
+      The simple version would poll "how long is the drive right now" every few
+      minutes. At 5:00 PM, for a 6:00 PM departure, that describes the 405 at
+      5:00, which can be very different from the 405 at 6:00.
     </p>
     <p>
-      So instead the tool samples <strong>inside your likely departure window</strong>.
-      On startup it fires one anchor probe for a departure 20 minutes before your
-      target, uses that baseline to compute a realistic departure window, and then
-      each cycle samples two times <em>within</em> that window plus one "now" sample
-      for live conditions. Three samples × three traffic models = nine calls per
-      cycle.
+      So the app samples future departure times. When you press Start it sends one
+      anchor request for a departure 20 minutes before your arrival target. From
+      that duration it sets a departure window: it ends at the target minus your
+      buffer and starts the anchor duration plus 15 minutes earlier. Every poll
+      then queries two departure times inside the window plus one for right now,
+      each with all three traffic models, which makes nine calls. If the target is
+      less than 25 minutes away it skips the window and queries only "now".
     </p>
     <figure>
       <div class="plate">
-        <img src="../images/diagram-sampling.png" loading="lazy"
-          alt="Diagram showing an anchor probe establishing a baseline, a derived realistic departure window, and sample points placed inside that window plus one at the current time." />
+        <img width="1672" height="867" src="../images/diagram-sampling.png" loading="lazy"
+          alt="Timeline diagram: an anchor probe 20 minutes before the target sets a departure window, and each poll places two sample points inside the window plus one at the current time." />
       </div>
-      <figcaption>Anchor, then window, then samples inside the window.</figcaption>
+      <figcaption>One anchor request sizes the window; each poll samples inside it.</figcaption>
     </figure>
+    <p style="margin-top:24px">
+      Each poll is added to a history table with the low, mean and high durations
+      and the resulting leave-by time, so you can see whether the recommendation is
+      still moving.
+    </p>
   </section>
 
   <section class="stop">
-    <p class="eyebrow">↓ using it</p>
-    <h2>Open a tab while you're getting ready</h2>
-    <p>
-      It is a single-page app you leave open in a browser tab. It shows the
-      countdown, updates the recommendation as traffic shifts, and when the moment
-      arrives it fires a <strong>browser notification</strong> and an on-screen
-      alert so you do not have to keep looking at it.
-    </p>
+    <p class="eyebrow">Build</p>
+    <h2>One file, your own API key</h2>
+    <dl class="specs">
+      <div class="spec"><dt>Routing</dt><dd>Google Routes API, three requests per sample with <code>OPTIMISTIC</code>, <code>BEST_GUESS</code> and <code>PESSIMISTIC</code></dd></div>
+      <div class="spec"><dt>Required setting</dt><dd><code>routingPreference: TRAFFIC_AWARE_OPTIMAL</code></dd></div>
+      <div class="spec"><dt>Call budget</dt><dd>3 calls for the anchor, then up to 9 per poll</dd></div>
+      <div class="spec"><dt>Poll cadence</dt><dd>Every 15 min when departure is over 60 min away, 8 min at 30 to 60, 3 min under 30</dd></div>
+      <div class="spec"><dt>Alert</dt><dd>Browser notification plus an on-screen alert at the leave-by time</dd></div>
+      <div class="spec"><dt>Other APIs</dt><dd>Maps JavaScript (map), Places classic (autocomplete), Directions (route line)</dd></div>
+      <div class="spec"><dt>Stack</dt><dd>One HTML file, vanilla JavaScript. No server, no build step. Last destination kept in <code>localStorage</code></dd></div>
+    </dl>
   </section>
 
   <section class="stop stop--warn">
-    <p class="eyebrow">↓ what it costs and what it can't do</p>
-    <h2>You bring your own API key</h2>
+    <p class="eyebrow">Limitations</p>
+    <h2>What it can't do</h2>
     <p>
-      This is the real friction and it is worth stating plainly. The tool needs a
-      Google Maps API key with four APIs enabled: Routes, Maps JavaScript, Places
-      (the classic one, not "New"), and Directions, pasted into the HTML file. It
-      is not a hosted service you can just click into, and at nine calls per poll
-      cycle a long monitoring session is not free if you exceed Google's free tier.
+      You need your own Google Maps API key with four APIs enabled, pasted into the
+      HTML file. It is not a hosted service. The article estimates a poll at about
+      $0.05 of Routes API usage and a trip at 5 to 15 polls, so 50 cents to a
+      dollar per trip at May 2026 prices.
     </p>
     <p>
-      It also inherits every limitation of its source. If Google's pessimistic
-      estimate is wrong about a crash that has not happened yet, so is this. The
-      tool improves the <em>decision</em>, not the underlying forecast.
+      The forecast is Google's. If the pessimistic model misses a crash that has
+      not happened yet, so does the app. It improves the decision about when to
+      leave, not the traffic prediction.
+    </p>
+    <p>
+      The layout is built for a desktop browser. Below 1080px the three columns
+      stack into one long page, with no phone-specific design. It also depends on
+      a browser tab staying open; a locked phone pauses the JavaScript. It handles
+      driving only, one destination at a time.
     </p>
   </section>
 
   <section class="stop stop--end">
-    <p class="eyebrow">Finish · what it is built on</p>
-    <h2>Where the numbers come from</h2>
-    <dl class="specs">
-      <div class="spec"><dt>Routing</dt><dd>Google Routes API, queried three times per sample with different <code>trafficModel</code> values</dd></div>
-      <div class="spec"><dt>Required setting</dt><dd><code>routingPreference: TRAFFIC_AWARE_OPTIMAL</code>, without which the traffic model is ignored</dd></div>
-      <div class="spec"><dt>Sampling</dt><dd>One anchor probe, then two in-window samples plus one live sample per cycle</dd></div>
-      <div class="spec"><dt>Alerting</dt><dd>Browser notification plus an on-screen alert at the leave-by moment</dd></div>
-      <div class="spec"><dt>Build</dt><dd>One self-contained HTML file. No server, no build step, no framework</dd></div>
-      <div class="spec"><dt>Setup</dt><dd>Your own Google Maps API key, pasted into the file</dd></div>
-    </dl>
+    <p class="eyebrow">More</p>
+    <h2>The full story</h2>
+    <p>
+      The <a href="../leave-time-optimizer-article.html">article</a> covers the
+      setup steps, the interface choices and the features I would add next:
+      calendar integration, saved routes, multi-stop trips and transit.
+    </p>
   </section>
 
 </div>
@@ -393,22 +444,22 @@
 
 <div class="wrap">
   <section class="close">
-    <h2>Leave as late as you can get away with</h2>
+    <h2>Leave as late as you safely can</h2>
     <div class="cta-row">
       <a class="btn btn-primary" href="https://github.com/lyhjeremy/leave-time-optimizer">Get the app</a>
-      <a class="textlink" href="../leave-time-optimizer-article.html">or read the full story</a>
+      <a class="textlink" href="../leave-time-optimizer-article.html">Read the article</a>
     </div>
   </section>
 
   <footer>
     <p>
       Leave Time Optimizer ·
-      <a href="../">Showcase</a> ·
+      <a href="../">App</a> ·
       <a href="../leave-time-optimizer-article.html">Article</a> ·
       <a href="https://github.com/lyhjeremy/leave-time-optimizer">Source</a> ·
       MIT © 2026 Jeremy Lee
     </p>
-    <p>Routing data from the Google Routes API. Image credits are listed in the article.</p>
+    <p>Routing data from the Google Routes API.</p>
   </footer>
 </div>
 </body>
