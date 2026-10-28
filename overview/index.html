@@ -242,17 +242,81 @@
   .stop--key::before, .stop--warn::before, .stop--end::before { background: var(--paper); border: 0; }
   .stop--end::before { color: var(--ink); }
 
-
-  .readout { margin-top: 30px; border: 1px solid var(--edge); background: var(--card); }
-  .readout-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 9px 16px; border-bottom: 1px solid var(--edge); font: 600 11.5px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-  .readout table { min-width: 520px; font-family: var(--mono); font-size: 14.5px; }
-  .readout td.mode { font-family: var(--display); font-weight: 600; font-size: 19px; color: var(--ink); }
-  .readout td.leave { font-weight: 600; font-size: 22px; color: var(--accent); }
-  .readout td.model { color: var(--muted); font-size: 13px; }
-  .readout .readout-foot { max-width: none; margin: 0; padding: 10px 16px; border-top: 1px solid var(--rule); font-family: var(--sans); font-size: 14px; color: var(--muted); }
 </style>
 </head>
 <body>
+<style>
+  /* Leave Time Optimizer: a departure board. Rows on a clock axis; green = leave-by, amber = the drive. */
+  .board { border: 1px solid var(--edge); background: var(--card); }
+  .board-head { display: flex; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; padding: 9px 16px;
+                border-bottom: 1px solid var(--edge); font: 600 11.5px/1.4 var(--mono); letter-spacing: .1em;
+                text-transform: uppercase; color: var(--muted); }
+  .board-body { padding: 14px 16px 12px; }
+  .board .b-title { font: 600 clamp(20px, 2.6vw, 26px)/1.2 var(--display); color: var(--ink); margin: 0 0 4px; max-width: none; letter-spacing: -.01em; }
+  .board .b-sub { font: 14px/1.5 var(--sans); color: var(--muted); margin: 0 0 14px; max-width: none; }
+  .board .b-foot { margin: 0; max-width: none; padding: 10px 16px 12px; border-top: 1px solid var(--rule);
+                   font: 14px/1.5 var(--sans); color: var(--muted); }
+
+  .dep { display: grid; grid-template-columns: 7.5rem 5.6rem minmax(0, 1fr); gap: 0 16px; align-items: center;
+         padding: 10px 0; border-bottom: 1px dotted var(--edge); }
+  .dep:last-of-type { border-bottom: 0; }
+  .dep .m { font: 600 20px/1.1 var(--display); color: var(--ink); }
+  .dep .m small { display: block; font: 11.5px/1.5 var(--mono); color: var(--muted); letter-spacing: .04em; }
+  .dep .t { font: 600 24px/1 var(--mono); color: var(--accent); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .dep .t small { display: block; font: 12px/1.6 var(--mono); color: var(--ink2); letter-spacing: 0; }
+  .lane { position: relative; height: 26px; }
+  .lane::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dotted var(--rule); }
+  .lane .drv { position: absolute; top: 6px; height: 14px; background: var(--accent2); }
+  .lane .go { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); }
+  .lane .arr { position: absolute; top: -4px; bottom: -4px; border-left: 1px dashed var(--ink); }
+  .clock { display: grid; grid-template-columns: 7.5rem 5.6rem minmax(0, 1fr); gap: 0 16px; }
+  .clock .ticks { position: relative; height: 22px; font: 11px var(--mono); color: var(--muted); }
+  .clock .ticks span { position: absolute; top: 6px; transform: translateX(-50%); white-space: nowrap; }
+  @media (max-width: 600px) {
+    .dep { grid-template-columns: minmax(0, 1fr) auto; }
+    .dep .lane { grid-column: 1 / -1; margin-top: 8px; }
+    .clock { grid-template-columns: 1fr; }
+    .clock > span { display: none; }
+    .dep .t { text-align: right; }
+  }
+
+  .plan { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 18px; margin: 0 0 14px; }
+  @media (max-width: 760px) { .plan { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+  @media (max-width: 520px) { .plan { grid-template-columns: minmax(0, 1fr); } }
+  .plan label { min-width: 0; }
+  .plan label { display: flex; flex-direction: column; gap: 6px; font: 12px/1.3 var(--mono); color: var(--ink2);
+                text-transform: uppercase; letter-spacing: .06em; }
+  .plan .row { display: flex; align-items: center; gap: 8px; }
+  .plan input[type=range] { flex: 1; min-width: 0; accent-color: var(--accent); }
+  .plan output { font: 600 15px var(--mono); color: var(--ink); min-width: 4.6ch; text-align: right; text-transform: none; letter-spacing: 0; }
+  .plan select { font: 600 14px var(--mono); color: var(--ink); background: var(--paper); border: 1px solid var(--edge); padding: 6px 8px; }
+  #tl { width: 100%; }
+  #tl svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .tl-ax { stroke: var(--edge); stroke-width: 1; }
+  .tl-g { stroke: var(--rule); stroke-width: 1; }
+  .tl-t { fill: var(--muted); font: 11px var(--mono); }
+  .tl-l { fill: var(--ink2); font: 600 11px var(--mono); }
+  .tl-win { fill: color-mix(in srgb, var(--accent2) 18%, transparent); stroke: var(--accent2); stroke-width: 1; }
+  .tl-drv { fill: var(--accent2); }
+  .tl-poll { fill: var(--ink); }
+  .tl-anc { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+  .tl-smp { fill: var(--accent2); }
+  .tl-go { stroke: var(--accent); stroke-width: 2.5; }
+  .tl-arr { stroke: var(--ink); stroke-width: 1; stroke-dasharray: 4 3; }
+  .tl-go-t { fill: var(--accent); font: 600 12px var(--mono); }
+  .tally { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--rule); margin-top: 12px; }
+  @media (max-width: 600px) { .tally { grid-template-columns: 1fr 1fr; } }
+  .tally div { padding: 10px 12px 2px 0; font: 12px/1.4 var(--mono); color: var(--muted); }
+  .tally b { display: block; font: 600 22px/1.25 var(--mono); color: var(--ink); letter-spacing: -.02em; }
+  .tally b.go { color: var(--accent); }
+  .board .polllog { margin: 10px 0 0; font: 12.5px/1.6 var(--mono); color: var(--ink2); max-width: none; }
+
+  .gotcha { margin-top: 28px; border: 1px solid var(--edge); padding: 16px 18px; background: var(--card); }
+  .gotcha pre { margin: 10px 0 0; font: 13px/1.6 var(--mono); color: var(--ink); white-space: pre-wrap; }
+  .gotcha p { margin: 0; max-width: none; color: var(--ink); font-size: 16px; }
+  .gotcha .who { display: block; margin-top: 10px; font: 600 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+</style>
+
 <div class="wrap">
   <header class="masthead">
     <div class="logo">Leave Time Optimizer</div>
@@ -264,13 +328,12 @@
     <h1>It works out the latest time you can leave and still arrive on time</h1>
 
     <p class="hero-sub">
-      Google Maps shows how long the drive takes if you leave now and a range like
-      "typically 22 to 50 min", and leaves the question of when to go to you. This app takes
-      an origin, a destination and an arrival time, asks Google's Routes API how
-      long the drive will take at departure times inside your likely window, and
-      counts down to the latest safe departure for three risk levels. It keeps
-      polling while you get ready and sends a browser notification when it is time
-      to go.
+      Google Maps tells you how long the drive takes if you leave now, plus a
+      range like "typically 22 to 50 min", and leaves the decision to you. This
+      app takes an origin, a destination and an arrival time, asks the Routes
+      API about departures inside your likely window, and counts down to the
+      latest safe departure at three levels of risk. It keeps polling while you
+      get ready and sends a notification when it is time to go.
     </p>
 
     <div class="cta-row">
@@ -278,38 +341,16 @@
       <a class="textlink" href="../leave-time-optimizer-article.html">Read the article</a>
     </div>
 
-    <figure style="margin-top:38px">
-      <img width="1910" height="889" class="shot" src="../images/screenshot-dashboard-ucla-lax.png" fetchpriority="high"
-        alt="The Leave Time Optimizer dashboard monitoring a UCLA to LAX Terminal 7 trip for a 6:45 PM arrival, with three countdowns on the right: Relaxed leave at 6:15 PM, Usual at 6:02 PM, Important at 5:38 PM." />
-      <figcaption>
-        UCLA to LAX Terminal 7, arriving 6:45 PM with a 5-minute buffer. Relaxed
-        expects a 24-minute drive and Important expects 61 minutes, so the
-        leave-by times are 37 minutes apart.
-      </figcaption>
+    <figure class="board" style="margin-top:42px">
+      <div class="board-head"><span>UCLA to LAX Terminal 7</span><span>Arrive 6:45 PM, buffer 5 min, 18 May 2026</span></div>
+      <div class="board-body">
+        <p class="b-title">Same trip, three answers 37 minutes apart</p>
+        <p class="b-sub">Each bar is the drive Google expects under one traffic model, ending at the 6:40 PM cutoff.</p>
+        <div id="board-rows"></div>
+        <div class="clock"><span></span><span></span><div class="ticks" id="board-ticks"></div></div>
+      </div>
+      <figcaption class="b-foot">Read from the dashboard below. The leave-by times are a minute earlier than 6:40 minus the rounded drive, because the app steps departures in 30-second increments and requires arrival at or before the cutoff.</figcaption>
     </figure>
-
-    <div class="claims">
-      <div class="claim">
-        <div class="n">37 min</div>
-        <p>Gap between the Relaxed and Important leave-by times on that trip. The
-           size of the gap tells you how unpredictable the route is.</p>
-      </div>
-      <div class="claim">
-        <div class="n">3</div>
-        <p>Risk levels, each one of Google's <code>trafficModel</code> values:
-           optimistic, best guess, pessimistic.</p>
-      </div>
-      <div class="claim">
-        <div class="n">9</div>
-        <p>Routes API calls per poll: three departure times, each queried with all
-           three traffic models.</p>
-      </div>
-      <div class="claim">
-        <div class="n">15 / 8 / 3</div>
-        <p>Minutes between polls when departure is more than 60, 30 to 60, and
-           under 30 minutes away.</p>
-      </div>
-    </div>
   </section>
 </div>
 
@@ -320,45 +361,35 @@
     <p class="eyebrow">Readout</p>
     <h2>Three traffic models, three leave-by times</h2>
     <p>
-      The risk levels come from Google. The Routes API has a
-      <code>trafficModel</code> parameter with three values, and the app sends the
-      same route request once with each. The spread between the three answers is
-      the same "typically X to Y min" range the Maps app shows; the API returns
-      each end of it as a number.
+      The risk levels come from Google. The Routes API takes a
+      <code>trafficModel</code> parameter with three values, and the app sends
+      the same request once with each: <code>OPTIMISTIC</code> for Relaxed,
+      <code>BEST_GUESS</code> for Usual, <code>PESSIMISTIC</code> for
+      Important. The spread between the answers is the "typically X to Y min"
+      range the Maps app shows, returned as numbers.
     </p>
-    <div class="readout">
-      <div class="readout-head"><span>UCLA to LAX T7</span><span>Arrive 6:45 PM, buffer 5 min</span></div>
-      <div class="tablewrap" style="margin:0;border:0">
-        <table>
-          <thead><tr><th>Mode</th><th>trafficModel</th><th>Drive</th><th>Leave at</th></tr></thead>
-          <tbody>
-            <tr><td class="mode">Relaxed</td><td class="model">OPTIMISTIC</td><td>24 min</td><td class="leave">6:15 PM</td></tr>
-            <tr><td class="mode">Usual</td><td class="model">BEST_GUESS</td><td>37 min</td><td class="leave">6:02 PM</td></tr>
-            <tr><td class="mode">Important</td><td class="model">PESSIMISTIC</td><td>61 min</td><td class="leave">5:38 PM</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="readout-foot">Read from the dashboard screenshot above, taken 18 May 2026.</p>
-    </div>
-    <p style="margin-top:24px">
+    <p>
       Relaxed is for lunch with a friend who is always late; Important is for a
-      flight or an interview, where arriving early is fine. All three are on screen
-      at once on purpose. On a calm route they land within a few minutes of each
-      other and Relaxed is safe, and on the 405 at rush hour they are far apart.
+      flight or an interview, where arriving early costs little. All three stay
+      on screen because the gap between them is information. On a calm route
+      they land within a few minutes of each other; on the 405 at rush hour
+      they are more than half an hour apart.
     </p>
     <figure>
-      <div class="plate">
-        <img width="1553" height="891" src="../images/diagram-traffic-models.png" loading="lazy"
-          alt="Diagram of a duration axis with OPTIMISTIC at 22 minutes, BEST_GUESS at 34 minutes and PESSIMISTIC at 50 minutes, with the Relaxed, Usual and Important mode labels beneath each." />
-      </div>
-      <figcaption>How the three traffic models map to the three modes, using an illustrative 22 to 50 minute range.</figcaption>
+      <img width="1910" height="889" class="shot" src="../images/screenshot-dashboard-ucla-lax.png" loading="lazy"
+        alt="The Leave Time Optimizer dashboard monitoring a UCLA to LAX Terminal 7 trip for a 6:45 PM arrival, with three countdowns on the right: Relaxed leave at 6:15 PM, Usual at 6:02 PM, Important at 5:38 PM." />
+      <figcaption>The dashboard on 18 May 2026: form and map on the left, the three countdowns on the right.</figcaption>
     </figure>
-    <div class="pull">
+    <div class="gotcha">
       <p>The Routes API ignores <code>trafficModel</code> unless
-         <code>routingPreference</code> is <code>TRAFFIC_AWARE_OPTIMAL</code>. It
-         returns no error, just the same duration for all three models, and the
-         answer looks perfectly plausible.</p>
-      <span class="who">The bug that took longest to find</span>
+        <code>routingPreference</code> is <code>TRAFFIC_AWARE_OPTIMAL</code>. It
+        returns no error, only the same duration for all three models, and the
+        answer looks plausible.</p>
+<pre>travelMode: 'DRIVE',
+routingPreference: 'TRAFFIC_AWARE_OPTIMAL',
+trafficModel: trafficModel,
+departureTime: departureDate.toISOString(),</pre>
+      <span class="who">The bug that took longest to find. Request body from fetchOneRouteWithModel</span>
     </div>
   </section>
 
@@ -371,25 +402,53 @@
       5:00, which can be very different from the 405 at 6:00.
     </p>
     <p>
-      So the app samples future departure times. When you press Start, it sends one
-      anchor request for a departure 20 minutes before your arrival target. From
-      that duration it sets a departure window: it ends at the target minus your
-      buffer and starts the anchor duration plus 15 minutes earlier. Every poll
-      then queries two departure times inside the window plus one for right now,
-      each with all three traffic models, which makes nine calls. If the target is
-      less than 25 minutes away it skips the window and queries only "now".
+      So the app samples future departures. On Start it sends one anchor
+      request for a departure 20 minutes before the arrival target. The
+      anchor's duration sizes a departure window that ends at the target minus
+      the buffer and starts the anchor duration plus 15 minutes earlier. Each
+      poll queries the two ends of that window and, unless one of them is
+      within a minute of now, a third departure for now, each with all three
+      traffic models. With under 25 minutes to the target it asks only about
+      now. Every sample's low and high are then widened to the lowest low and
+      highest high of the whole poll, so a window that straddles the start of
+      rush hour reads as uncertain.
     </p>
-    <figure>
-      <div class="plate">
-        <img width="1672" height="867" src="../images/diagram-sampling.png" loading="lazy"
-          alt="Timeline diagram: an anchor probe 20 minutes before the target sets a departure window, and each poll places two sample points inside the window plus one at the current time." />
+    <p>
+      The planner below runs that schedule, using the constants and the
+      cadence rule from the app's source, for a trip you set.
+    </p>
+
+    <figure class="board" id="planner" style="margin-top:26px">
+      <div class="board-head"><span>Poll planner, arrive 6:45 PM</span><span>leave-time-optimizer-1.17.0.html</span></div>
+      <div class="board-body">
+        <p class="b-title" id="pl-title">Start two hours before arrival and the app polls 13 times before you leave</p>
+        <p class="b-sub">Assumes the drive time holds steady at your Usual estimate, so the leave-by time stays put.</p>
+        <div class="plan">
+          <label>Start monitoring
+            <span class="row"><input type="range" id="pl-start" min="30" max="240" step="5" value="120" /><output id="pl-start-o">4:45 PM</output></span></label>
+          <label>Usual drive
+            <span class="row"><input type="range" id="pl-drive" min="10" max="90" step="1" value="37" /><output id="pl-drive-o">37 min</output></span></label>
+          <label>Buffer
+            <span class="row"><select id="pl-buf"><option value="0">0 min</option><option value="5" selected>5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="30">30 min</option></select></span></label>
+          <label>Cadence
+            <span class="row" style="font:13px/1.4 var(--mono);text-transform:none;letter-spacing:0;color:var(--ink2)">15 / 8 / 3 min</span></label>
+        </div>
+        <div id="tl" aria-hidden="true"></div>
+        <div class="tally" aria-live="polite">
+          <div>Leave by<b class="go" id="t-go">6:03 PM</b></div>
+          <div>Polls before then<b id="t-polls">0</b></div>
+          <div>Routes API calls<b id="t-calls">0</b></div>
+          <div>Cost at $0.05 a poll<b id="t-cost">$0</b></div>
+        </div>
+        <p class="polllog" id="pl-log"></p>
       </div>
-      <figcaption>One anchor request sizes the window; each poll samples inside it.</figcaption>
+      <figcaption class="b-foot">Ticks are polls. The open circle is the departure time the anchor request asks about (sent once, at Start), and the shaded span is the departure window it sizes. Constants from the app: anchor 20 minutes before target, window pad 15 minutes, two window samples, now-only under 25 minutes, polls every 15 minutes while leave-by is over 60 minutes away, every 8 at 30 to 60, every 3 inside 30. The cost per poll is the article's estimate at May 2026 prices.</figcaption>
     </figure>
+
     <p style="margin-top:24px">
-      Each poll is added to a history table with the low, mean and high durations
-      and the resulting leave-by time, so you can see whether the recommendation is
-      still moving.
+      Each poll also goes into a history table with the low, mean and high
+      durations and the resulting leave-by time, so you can see whether the
+      recommendation is still moving.
     </p>
   </section>
 
@@ -411,21 +470,21 @@
     <p class="eyebrow">Limitations</p>
     <h2>What it can't do</h2>
     <p>
-      You need your own Google Maps API key with four APIs enabled, pasted into the
-      HTML file, because nothing is hosted. The article estimates a poll at about
-      $0.05 of Routes API usage and a trip at 5 to 15 polls, so 50 cents to a
-      dollar per trip at May 2026 prices.
+      You need your own Google Maps API key with four APIs enabled, pasted
+      into the HTML file, because nothing is hosted. The article estimates a
+      poll at about $0.05 of Routes API usage and a trip at 5 to 15 polls, so
+      50 cents to a dollar per trip at May 2026 prices.
     </p>
     <p>
-      The forecast is Google's. If the pessimistic model misses a crash that has
-      not happened yet, the app misses it too. What it improves is the decision
-      about when to leave; the traffic prediction is Google's.
+      The forecast is Google's. If the pessimistic model misses a crash that
+      has not happened yet, the app misses it too; what it improves is the
+      decision about when to leave.
     </p>
     <p>
-      The layout is built for a desktop browser. Below 1080px the three columns
-      stack into one long page, with no phone-specific design. It also depends on
-      a browser tab staying open; a locked phone pauses the JavaScript. It handles
-      driving only, one destination at a time.
+      The layout is built for a desktop browser. Below 1080px the three
+      columns stack into one long page, with no phone-specific design. It also
+      depends on a browser tab staying open, and a locked phone pauses the
+      JavaScript. It handles driving only, one destination at a time.
     </p>
   </section>
 
@@ -462,5 +521,96 @@
     <p>Routing data from the Google Routes API.</p>
   </footer>
 </div>
+
+<script>
+(function () {
+  /* Minutes after midnight. */
+  var hm = function (m) { m = Math.round(m); var h = Math.floor(m / 60) % 24, mm = m % 60; return ((h + 11) % 12 + 1) + ":" + (mm < 10 ? "0" : "") + mm + " " + (h < 12 ? "AM" : "PM"); };
+  var T = 18 * 60 + 45;
+
+  /* Board: values from the 18 May 2026 dashboard screenshot. */
+  var MODES = [["Relaxed", "OPTIMISTIC", 24, 18 * 60 + 15], ["Usual", "BEST_GUESS", 37, 18 * 60 + 2], ["Important", "PESSIMISTIC", 61, 17 * 60 + 38]];
+  var A = 17 * 60 + 30, Z = 18 * 60 + 50, pos = function (m) { return ((m - A) / (Z - A) * 100).toFixed(2) + "%"; };
+  document.getElementById("board-rows").innerHTML = MODES.map(function (r) {
+    return '<div class="dep"><span class="m">' + r[0] + '<small>' + r[1] + '</small></span>' +
+      '<span class="t">' + hm(r[3]).replace(" PM", "") + '<small>' + r[2] + ' min drive</small></span>' +
+      '<span class="lane" role="img" aria-label="' + r[0] + ': leave at ' + hm(r[3]) + ', ' + r[2] + ' minute drive">' +
+      '<span class="drv" style="left:' + pos(18 * 60 + 40 - r[2]) + ';width:' + (r[2] / (Z - A) * 100).toFixed(2) + '%"></span>' +
+      '<span class="go" style="left:' + pos(r[3]) + '"></span><span class="arr" style="left:' + pos(T) + '"></span></span></div>';
+  }).join("");
+  document.getElementById("board-ticks").innerHTML = [17 * 60 + 30, 17 * 60 + 45, 18 * 60, 18 * 60 + 15, 18 * 60 + 30, 18 * 60 + 45].map(function (m) {
+    return '<span style="left:' + pos(m) + '">' + hm(m).replace(" PM", "") + '</span>';
+  }).join("");
+
+  /* Planner: the app's constants and rules (ANCHOR_OFFSET_BEFORE_TARGET_MIN, WINDOW_PAD_BEFORE_MIN,
+     FAN_OUT_SAMPLE_COUNT, SHORT_TARGET_THRESHOLD_MIN, POLL_INTERVALS, chooseSamples, pollIntervalMs). */
+  var ANCHOR = 20, PAD = 15, SHORT = 25;
+  var interval = function (minsUntil) { return minsUntil > 60 ? 15 : minsUntil >= 30 ? 8 : 3; };
+  var sIn = document.getElementById("pl-start"), dIn = document.getElementById("pl-drive"), bIn = document.getElementById("pl-buf");
+  var tl = document.getElementById("tl");
+
+  function plan() {
+    var S = T - +sIn.value, D = +dIn.value, B = +bIn.value;
+    var cutoff = T - B, leave = cutoff - D;
+    var anchorAt = Math.max(S, T - ANCHOR);
+    var wEnd = cutoff, wStart = wEnd - D - PAD;
+    var polls = [], t = S, guard = 0;
+    while (t < leave && guard++ < 200) {
+      var samples;
+      if (T - t < SHORT) samples = [t];
+      else {
+        var st = Math.max(t, wStart), en = Math.max(t + 1, wEnd);
+        samples = en - st <= 1 ? [st] : [st, en];
+        if (!samples.some(function (x) { return Math.abs(x - t) < 1; })) samples.unshift(t);
+      }
+      polls.push({ t: t, n: samples.length, samples: samples });
+      t += interval(leave - t);
+    }
+    var calls = 3 + polls.reduce(function (s, p) { return s + 3 * p.n; }, 0);
+    return { S: S, D: D, B: B, cutoff: cutoff, leave: leave, anchorAt: anchorAt, wStart: wStart, wEnd: wEnd, polls: polls, calls: calls };
+  }
+
+  function draw() {
+    var p = plan();
+    document.getElementById("pl-start-o").textContent = hm(p.S).replace(" PM", "").replace(" AM", "");
+    document.getElementById("pl-drive-o").textContent = p.D + " min";
+    var W = Math.max(280, tl.clientWidth), narrow = W < 520, H = narrow ? 150 : 140;
+    var L = 8, R = 10, lo = Math.min(p.S, p.wStart) - 5, hi = T + 5;
+    var X = function (m) { return L + (m - lo) / (hi - lo) * (W - L - R); };
+    var yP = 34, yW = 74, yA = 116;
+    var s = '<svg viewBox="0 0 ' + W + " " + H + '" width="' + W + '" height="' + H + '">';
+    var step = (hi - lo) > 150 ? 60 : 30;
+    for (var m = Math.ceil(lo / step) * step; m <= hi; m += step) {
+      s += '<line class="tl-g" x1="' + X(m) + '" x2="' + X(m) + '" y1="16" y2="' + (yA - 8) + '"/><text class="tl-t" x="' + X(m) + '" y="' + (H - 4) + '" text-anchor="middle">' + hm(m).replace(/ [AP]M/, "") + '</text>';
+    }
+    s += '<line class="tl-ax" x1="' + L + '" x2="' + (W - R) + '" y1="' + yA + '" y2="' + yA + '"/>';
+    s += '<text class="tl-l" x="' + L + '" y="12">polls</text>';
+    p.polls.forEach(function (q) { s += '<rect class="tl-poll" x="' + (X(q.t) - 1.5) + '" y="' + (yP - 9) + '" width="3" height="18"/>'; });
+    s += '<circle class="tl-anc" cx="' + X(p.anchorAt) + '" cy="' + yP + '" r="5"/>';
+    s += '<rect class="tl-win" x="' + X(p.wStart) + '" y="' + (yW - 8) + '" width="' + (X(p.wEnd) - X(p.wStart)) + '" height="16"/>';
+    s += '<rect class="tl-drv" x="' + X(p.leave) + '" y="' + (yW - 3) + '" width="' + (X(p.cutoff) - X(p.leave)) + '" height="6"/>';
+    s += '<line class="tl-go" x1="' + X(p.leave) + '" x2="' + X(p.leave) + '" y1="16" y2="' + yA + '"/>';
+    s += '<line class="tl-arr" x1="' + X(T) + '" x2="' + X(T) + '" y1="16" y2="' + yA + '"/>';
+    var gx = X(p.leave), anchorEnd = gx > W - 150;
+    s += '<text class="tl-go-t" x="' + (gx + (anchorEnd ? -6 : 6)) + '" y="' + (yA - 6) + '" text-anchor="' + (anchorEnd ? "end" : "start") + '">leave ' + hm(p.leave).replace(/ [AP]M/, "") + '</text>';
+    s += '<text class="tl-t" x="' + (X(T) - 4) + '" y="12" text-anchor="end">arrive 6:45</text></svg>';
+    tl.innerHTML = s;
+
+    var n = p.polls.length, cost = n * 0.05;
+    document.getElementById("t-go").textContent = hm(p.leave);
+    document.getElementById("t-polls").textContent = n;
+    document.getElementById("t-calls").textContent = p.calls;
+    document.getElementById("t-cost").textContent = "$" + cost.toFixed(2);
+    var hrs = +sIn.value / 60;
+    var when = hrs === 1 ? "an hour" : hrs === 2 ? "two hours" : (hrs > 1 ? (Math.round(hrs * 10) / 10) + " hours" : sIn.value + " minutes");
+    document.getElementById("pl-title").textContent = "Start " + when + " before arrival and the app polls " + n + " time" + (n === 1 ? "" : "s") + " before you leave";
+    document.getElementById("pl-log").textContent = n ? "Polls at " + p.polls.map(function (q) { return hm(q.t).replace(/ [AP]M/, "") + " (" + q.n * 3 + ")"; }).join(", ") + ". Calls per poll in brackets; the anchor adds 3." : "Leave-by is already past at the start time.";
+  }
+  [sIn, dIn, bIn].forEach(function (el) { el.addEventListener("input", draw); el.addEventListener("change", draw); });
+  draw();
+  var lw = tl.clientWidth;
+  window.addEventListener("resize", function () { if (tl.clientWidth !== lw) { lw = tl.clientWidth; draw(); } });
+})();
+</script>
 </body>
 </html>
