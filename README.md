@@ -8,9 +8,9 @@ Design and copy follow [these standards](https://github.com/lyhjeremy/lyhjeremy/
 
 ![Dashboard for a UCLA to LAX Terminal 7 trip arriving 6:45 PM: Relaxed says leave at 6:15 PM, Usual at 6:02 PM, Important at 5:38 PM](images/screenshot-dashboard-ucla-lax.png)
 
-## Example
+## One trip, three answers
 
-UCLA to LAX Terminal 7, arrive 6:45 PM, 5-minute buffer (18 May 2026):
+On 18 May 2026 I asked it about UCLA to LAX Terminal 7, arriving 6:45 PM with a 5-minute buffer:
 
 | Mode | Routes API `trafficModel` | Expected drive | Leave at |
 |---|---|---|---|
@@ -18,27 +18,26 @@ UCLA to LAX Terminal 7, arrive 6:45 PM, 5-minute buffer (18 May 2026):
 | Usual | `BEST_GUESS` | 37 min | 6:02 PM |
 | Important | `PESSIMISTIC` | 61 min | 5:38 PM |
 
-The 37-minute gap between Relaxed and Important is the reason all three are shown at once: it says how unpredictable the route is.
+Relaxed and Important are 37 minutes apart, and that gap is why the app shows all three at once: its size tells you how unpredictable the route is.
 
 ## How it works
 
-- Each departure time is sent to the Google Routes API three times, with `trafficModel` set to `OPTIMISTIC`, `BEST_GUESS` and `PESSIMISTIC`. This only works with `routingPreference: TRAFFIC_AWARE_OPTIMAL`; with any other setting the API silently returns the same duration for all three.
-- Sampling future departures: on Start, one anchor request for a departure 20 minutes before the target sizes a departure window (target minus buffer, back by the anchor duration plus 15 minutes). Each poll then samples two departure times inside that window plus one for now: 9 API calls per poll. Under 25 minutes to target, it samples only now.
-- Polling interval: every 15 minutes when departure is over an hour away, every 8 at 30 to 60 minutes, every 3 under 30.
-- A browser notification and an on-screen alert at the leave-by time, plus a poll-history table showing how the recommendation moved.
+Each departure time goes to the Google Routes API three times, with `trafficModel` set to `OPTIMISTIC`, `BEST_GUESS` and `PESSIMISTIC`. That only works with `routingPreference: TRAFFIC_AWARE_OPTIMAL`; under any other setting the API silently returns the same duration for all three.
 
-## Stack
+The app asks about future departures as well as the present. On Start it sends one anchor request for a departure 20 minutes before the target, and uses that duration to size a departure window (ending at the target minus the buffer, and starting the anchor duration plus 15 minutes before that). Each poll then samples two departure times inside the window plus one for now, which is 9 API calls. With under 25 minutes to go, it samples only now. Polls come every 15 minutes while departure is over an hour away, every 8 at 30 to 60 minutes, and every 3 inside 30.
 
-One HTML file, vanilla JavaScript, Google Routes, Maps JavaScript, Places (classic) and Directions APIs. No server, no build step.
+At the leave-by time you get a browser notification and an on-screen alert, and a poll-history table shows how the recommendation moved along the way.
 
-## How to run
+It is one HTML file of vanilla JavaScript using the Google Routes, Maps JavaScript, Places (classic) and Directions APIs, with no server or build step.
+
+## Setting it up
 
 1. Get a Google Maps API key in the [Google Cloud Console](https://console.cloud.google.com/).
-2. Enable four APIs on its project: Routes API, Maps JavaScript API, Places API (classic, not "New") and Directions API. Restricting the key to those four is recommended.
+2. Enable four APIs on its project: Routes API, Maps JavaScript API, Places API (the classic one, not "New") and Directions API. Restricting the key to those four is a good idea.
 3. Open `leave-time-optimizer-1.17.0.html` in a text editor and paste your key into `const API_KEY = 'fill in your Google API here';` near the top.
 4. Save and open the file in a browser.
 
-The article estimates about $0.05 of Routes API usage per poll and 5 to 15 polls per trip (May 2026 prices).
+The article puts Routes API usage at about $0.05 per poll and 5 to 15 polls per trip (May 2026 prices).
 
 ## Repo layout
 
@@ -52,10 +51,7 @@ The article estimates about $0.05 of Routes API usage per poll and 5 to 15 polls
 
 ## Limitations
 
-- You need your own API key; it is not a hosted service.
-- The forecast is Google's. If the pessimistic model misses an incident, so does the app.
-- Built for a desktop browser. Below 1080px the columns stack, with no phone-specific design, and the countdown depends on the tab staying open.
-- Driving only, one destination per trip.
+You need your own API key, since nothing is hosted. The forecast is Google's, so if the pessimistic model misses an incident, the app misses it too. The layout is built for a desktop browser: below 1080px the columns stack without any phone-specific design, and the countdown depends on the tab staying open. It handles driving only, to one destination per trip.
 
 ## License
 

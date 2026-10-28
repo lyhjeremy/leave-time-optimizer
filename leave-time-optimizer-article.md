@@ -49,9 +49,7 @@ That screenshot is the whole case for the tool. A 24-minute drive and a 61-minut
 
 ## Where the three modes come from
 
-The three risk levels are not something I made up. They come from Google's Routes API.
-
-A route request can include a `trafficModel` parameter with one of three values:
+The three risk levels come straight from Google's Routes API. A route request can include a `trafficModel` parameter with one of three values:
 
 - `OPTIMISTIC` assumes traffic will be better than typical.
 - `BEST_GUESS` is Google's realistic estimate from live and historical data.
@@ -59,16 +57,16 @@ A route request can include a `trafficModel` parameter with one of three values:
 
 Send the same request with each value and you get three durations. Their spread is the "typically 22 to 50 min" range the Maps app shows. The consumer app shows the range for you to eyeball; the developer API gives you each end as a number you can compute with.
 
-So Relaxed is `OPTIMISTIC`, Usual is `BEST_GUESS` and Important is `PESSIMISTIC`. The app doesn't predict traffic any better than Google does. It packages Google's prediction range into a decision.
+So Relaxed is `OPTIMISTIC`, Usual is `BEST_GUESS` and Important is `PESSIMISTIC`. The app's forecast is exactly as good as Google's; what it adds is turning Google's range into a time to walk out the door.
 
 ![A duration axis with OPTIMISTIC at 22 min, BEST_GUESS at 34 min and PESSIMISTIC at 50 min, and the Relaxed, Usual and Important labels beneath each](./images/diagram-traffic-models.png)
 *The three traffic models and the modes they map to, on an illustrative 22 to 50 minute range.*
 
-One gotcha cost me an embarrassing amount of time: `trafficModel` only takes effect when `routingPreference` is `TRAFFIC_AWARE_OPTIMAL`. With any other routing preference the API ignores the parameter. It doesn't error or warn; it returns the same duration for all three models, and that looks like real data. If you build anything similar, check that setting first.
+One gotcha cost me an embarrassing amount of time: `trafficModel` only takes effect when `routingPreference` is `TRAFFIC_AWARE_OPTIMAL`. With any other routing preference the API ignores the parameter. It doesn't error or warn. It returns the same duration for all three models, which looks like a perfectly plausible answer. If you build anything similar, check that setting first.
 
 ## The sampling problem
 
-The obvious version asks Google every few minutes how long the drive is right now and updates the countdown. That works, sort of, but it answers the wrong question. If I plan to leave at 6:00 PM and it's 5:00 PM, the current drive time describes traffic at 5:00. In LA the 405 at 5:00 and the 405 at 6:00 are close to different freeways.
+The obvious version asks Google every few minutes how long the drive is right now and updates the countdown. That works, sort of, but it answers the wrong question: if I plan to leave at 6:00 PM and it's 5:00 PM, the current drive time describes traffic at 5:00. In LA the 405 at 5:00 and the 405 at 6:00 are close to different freeways.
 
 What I want to know is how long the drive will take if I leave during my likely departure window.
 
@@ -85,11 +83,11 @@ The polling interval depends on how far away departure is:
 - 30 to 60 minutes out: every 8 minutes
 - under 30 minutes out: every 3 minutes
 
-Far from departure, little changes between polls. Close to it, the numbers need to be fresh.
+Far from departure little changes between polls, and close to it the numbers need to be fresh.
 
 ## Setup
 
-The app is one HTML file with no build step, no install and no server. The only external dependency is Google Maps Platform. Setup takes about five minutes.
+The app is one HTML file that runs straight from disk, and its only external dependency is Google Maps Platform. Setup takes about five minutes.
 
 **1. Get a Google Maps API key.** In the [Google Cloud Console](https://console.cloud.google.com/), create a project (or use an existing one), then go to `APIs & Services → Credentials → Create Credentials → API key`. The key looks like `AIzaSy...`.
 
@@ -120,16 +118,16 @@ At the time of writing a poll cycle cost roughly $0.05 in Routes API usage, and 
 
 **Poll history.** Every poll adds a row to a table at the bottom right of the dashboard, with the low, mean and high durations and the resulting leave-by time. A green `-2m` means traffic eased and I can leave a little later than the previous poll said; a red `+3m` means it is getting worse. Over a session, the trend tells me whether the current recommendation has settled.
 
-**A real notification.** The tab stays in the background while I pack a bag or look for my keys, so the alert has to come from the operating system, not from a change in a tab I can't see.
+**An operating-system notification.** The tab sits in the background while I pack a bag or look for my keys, so the alert has to come from the operating system; a change inside a tab I can't see is no use.
 
 **Defaults.** Today's date is preselected. The mode resets to Usual on each load. The origin tries to fill itself from GPS, and the last destination is kept in `localStorage`. By the time the tab has loaded, the form is usually one field away from ready.
 
 **Type for glancing.** The countdowns use a large serif numeral, because from the corner of my eye the shape of "18h 4min" reads faster than the digits. The poll-history table is set in a monospace face so the columns line up.
 
-## Limitations and what I'd add
+## What's missing
 
 - **Phones.** The layout is built for a desktop browser. Below 1080px the three columns stack into one long page, but nothing in it was designed for a phone, which is the wrong shape for something you check while running around the house.
-- **A native app.** The app depends on a browser tab staying alive. Lock a phone for too long and the JavaScript pauses. A real iOS or Android app could use push notifications instead.
+- **A native app.** The app depends on a browser tab staying alive. Lock a phone for too long and the JavaScript pauses. A native iOS or Android app could use push notifications instead.
 - **Calendar integration.** I type the address and arrival time for every trip. Pulling them from Google Calendar would remove that step.
 - **Saved routes.** One-tap presets for Home to Office, Home to LAX, Home to my parents' place in San Gabriel would make it useful for routine trips too.
 - **Multi-stop trips.** The Routes API supports waypoints; the interface doesn't yet.

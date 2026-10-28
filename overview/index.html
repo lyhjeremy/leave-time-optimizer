@@ -265,7 +265,7 @@
 
     <p class="hero-sub">
       Google Maps shows how long the drive takes if you leave now and a range like
-      "typically 22 to 50 min". It does not tell you when to leave. This app takes
+      "typically 22 to 50 min", and leaves the question of when to go to you. This app takes
       an origin, a destination and an arrival time, asks Google's Routes API how
       long the drive will take at departure times inside your likely window, and
       counts down to the latest safe departure for three risk levels. It keeps
@@ -341,10 +341,10 @@
       <p class="readout-foot">Read from the dashboard screenshot above, taken 18 May 2026.</p>
     </div>
     <p style="margin-top:24px">
-      Relaxed is for lunch with a friend who is always late. Important is for a
-      flight or an interview, and accepts arriving early. Showing all three at once
-      is deliberate: on a calm route they land within a few minutes of each other
-      and Relaxed is safe; on the 405 at rush hour they do not.
+      Relaxed is for lunch with a friend who is always late; Important is for a
+      flight or an interview, where arriving early is fine. All three are on screen
+      at once on purpose. On a calm route they land within a few minutes of each
+      other and Relaxed is safe, and on the 405 at rush hour they are far apart.
     </p>
     <figure>
       <div class="plate">
@@ -356,22 +356,22 @@
     <div class="pull">
       <p>The Routes API ignores <code>trafficModel</code> unless
          <code>routingPreference</code> is <code>TRAFFIC_AWARE_OPTIMAL</code>. It
-         returns no error. You get the same duration for all three models, and it
-         looks like real data.</p>
+         returns no error, just the same duration for all three models, and the
+         answer looks perfectly plausible.</p>
       <span class="who">The bug that took longest to find</span>
     </div>
   </section>
 
   <section class="stop">
     <p class="eyebrow">Sampling</p>
-    <h2>It asks about the time you will leave, not the time it is now</h2>
+    <h2>It asks about the time you plan to leave</h2>
     <p>
       The simple version would poll "how long is the drive right now" every few
       minutes. At 5:00 PM, for a 6:00 PM departure, that describes the 405 at
       5:00, which can be very different from the 405 at 6:00.
     </p>
     <p>
-      So the app samples future departure times. When you press Start it sends one
+      So the app samples future departure times. When you press Start, it sends one
       anchor request for a departure 20 minutes before your arrival target. From
       that duration it sets a departure window: it ends at the target minus your
       buffer and starts the anchor duration plus 15 minutes earlier. Every poll
@@ -403,7 +403,7 @@
       <div class="spec"><dt>Poll cadence</dt><dd>Every 15 min when departure is over 60 min away, 8 min at 30 to 60, 3 min under 30</dd></div>
       <div class="spec"><dt>Alert</dt><dd>Browser notification plus an on-screen alert at the leave-by time</dd></div>
       <div class="spec"><dt>Other APIs</dt><dd>Maps JavaScript (map), Places classic (autocomplete), Directions (route line)</dd></div>
-      <div class="spec"><dt>Stack</dt><dd>One HTML file, vanilla JavaScript. No server, no build step. Last destination kept in <code>localStorage</code></dd></div>
+      <div class="spec"><dt>Stack</dt><dd>One HTML file of vanilla JavaScript that runs without a server or build step; the last destination is kept in <code>localStorage</code></dd></div>
     </dl>
   </section>
 
@@ -412,14 +412,14 @@
     <h2>What it can't do</h2>
     <p>
       You need your own Google Maps API key with four APIs enabled, pasted into the
-      HTML file. It is not a hosted service. The article estimates a poll at about
+      HTML file, because nothing is hosted. The article estimates a poll at about
       $0.05 of Routes API usage and a trip at 5 to 15 polls, so 50 cents to a
       dollar per trip at May 2026 prices.
     </p>
     <p>
       The forecast is Google's. If the pessimistic model misses a crash that has
-      not happened yet, so does the app. It improves the decision about when to
-      leave, not the traffic prediction.
+      not happened yet, the app misses it too. What it improves is the decision
+      about when to leave; the traffic prediction is Google's.
     </p>
     <p>
       The layout is built for a desktop browser. Below 1080px the three columns
